@@ -1,7 +1,14 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../styles/HomePage.css';
 
 const HomePage = () => {
+  const navigate = useNavigate();
+
+  const handleStartTrip = () => {
+    navigate('/create-trip');
+  };
+
   return (
     <div className="home-page">
       <header className="header">
@@ -17,6 +24,9 @@ const HomePage = () => {
           <p className="welcome-text">
             Plan, discover, and join amazing social meetups in your area.
           </p>
+          <button onClick={handleStartTrip} className="start-trip-button">
+            Start Trip
+          </button>
         </div>
         
         <div className="placeholder-section">
@@ -30,4 +40,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage; 
+export default HomePage;
