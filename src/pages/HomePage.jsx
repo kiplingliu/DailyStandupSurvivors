@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button, Space } from 'antd';
+import useAppNotification from '../hooks/useAppNotification';
 import '../styles/HomePage.css';
+
 const HomePage = () => {
   const navigate = useNavigate();
+  const notification = useAppNotification();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -254,16 +258,16 @@ const HomePage = () => {
   return (
     <div className="home-page">
       <div className="header">
-        <img 
-          src="/img/Rendezview_logo2-01.svg" 
-          alt="RendezView Logo" 
+        <img
+          src="/img/Rendezview_logo2-01.svg"
+          alt="RendezView Logo"
           className="app-logo"
         />
         <p className="welcome-message">Welcome, Jayvee!</p>
       </div>
-      
+
       {!showForm ? (
-        <button 
+        <button
           className="create-rendezvous-btn"
           onClick={() => setShowForm(true)}
         >
