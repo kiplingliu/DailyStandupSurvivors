@@ -28,6 +28,7 @@ const RendezvousMapPage = () => {
   const [characterLocations, setCharacterLocations] = useState([]);
   const [_joinedCharacters, setJoinedCharacters] = useState([]);
   const [candidates, setCandidates] = useState([]);
+  const [isAISearchEnabled, setIsAISearchEnabled] = useState(false);
 
   // Hardcoded nice-looking shareable link
   const shareableLink = "https://rendezview.app/join/748372590";
@@ -586,6 +587,193 @@ useEffect(() => {
     }
   };
 
+  const handleAISearch = async (query) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      // Clear existing place markers
+      if (placesLayerRef.current) {
+        placesLayerRef.current.removeAll();
+      }
+      return;
+    }
+
+    try {
+      // Get the rendezvous location coordinates for context
+      let mainSearchCenter;
+      if (rendezvous.location.includes('Current Location') && rendezvous.location.includes('(')) {
+        const coordMatch = rendezvous.location.match(/\(([^)]+)\)/);
+        if (coordMatch) {
+          const [lat, lng] = coordMatch[1].split(',').map(coord => parseFloat(coord.trim()));
+          mainSearchCenter = { latitude: lat, longitude: lng };
+        }
+      } else {
+        const coordinates = await geocodeAddress(rendezvous.location);
+        if (coordinates) {
+          mainSearchCenter = { latitude: coordinates[1], longitude: coordinates[0] };
+        }
+      }
+
+      if (!mainSearchCenter) {
+        mainSearchCenter = { latitude: 34.0522, longitude: -118.2437 };
+      }
+
+      // Create search centers for AI search
+      const searchCenters = [
+        { ...mainSearchCenter, name: 'Main Location' },
+        ...placeholderLocations.map(placeholder => ({
+          latitude: placeholder.latitude,
+          longitude: placeholder.longitude,
+          name: placeholder.name
+        }))
+      ];
+
+      console.log('AI Search query:', query);
+      console.log('Searching from centers:', searchCenters);
+
+      // Parse the AI query to extract relevant search terms
+      const aiSearchTerms = parseAIQuery(query);
+      console.log('Parsed AI search terms:', aiSearchTerms);
+
+      const allResults = [];
+      const serviceUrl = "https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer";
+      
+      for (const center of searchCenters) {
+        try {
+          // Use the parsed search terms for more targeted search
+          const params = {
+            address: {
+              SingleLine: aiSearchTerms.searchTerm
+            },
+            location: {
+              x: center.longitude,
+              y: center.latitude,
+              spatialReference: { wkid: 4326 }
+            },
+            distance: 8000, // 8km radius from each center
+            maxLocations: 15, // Increase limit for AI search
+            outFields: ["Place_addr", "PlaceName", "Type", "Addr_type"],
+            apiKey: ARCGIS_API_KEY
+          };
+
+          const response = await locator.addressToLocations(serviceUrl, params);
+          
+          if (response && response.length > 0) {
+            const results = response
+              .filter(result => {
+                // Apply AI filters
+                let score = result.score;
+                
+                // Boost score based on AI criteria
+                if (aiSearchTerms.rating) {
+                  // For demo purposes, boost score for well-known chains
+                  const wellKnownChains = ['starbucks', 'mcdonalds', 'pizza hut', 'dominos', 'subway', 'walmart', 'target'];
+                  const placeName = (result.attributes?.PlaceName || result.address).toLowerCase();
+                  if (wellKnownChains.some(chain => placeName.includes(chain))) {
+                    score += 15; // Boost score for well-known places
+                  }
+                }
+                
+                if (aiSearchTerms.proximity && aiSearchTerms.proximity.includes('near me')) {
+                  // Already handled by location-based search
+                  score += 5;
+                }
+                
+                return score > 45; // Slightly lower threshold for AI search
+              })
+              .map((place, index) => ({
+                placeId: `${center.name.replace(/\s+/g, '_')}_ai_${index}`,
+                name: place.attributes?.PlaceName || place.address,
+                address: place.attributes?.Place_addr || place.address,
+                location: {
+                  longitude: place.location.longitude,
+                  latitude: place.location.latitude
+                },
+                categories: place.attributes?.Type ? [{ label: place.attributes.Type }] : [],
+                addressType: place.attributes?.Addr_type || 'Unknown',
+                score: Math.round(place.score),
+                searchArea: center.name,
+                aiContext: aiSearchTerms // Add AI context for display
+              }));
+            
+            allResults.push(...results);
+          }
+        } catch (error) {
+          console.error(`AI Search failed for ${center.name}:`, error);
+        }
+      }
+
+      // Remove duplicates and sort by enhanced score
+      const uniqueResults = [];
+      allResults.forEach(result => {
+        const isDuplicate = uniqueResults.some(existing => {
+          const distance = Math.sqrt(
+            Math.pow((existing.location.latitude - result.location.latitude) * 111000, 2) +
+            Math.pow((existing.location.longitude - result.location.longitude) * 111000 * Math.cos(result.location.latitude * Math.PI / 180), 2)
+          );
+          return distance < 100;
+        });
+
+        if (!isDuplicate) {
+          uniqueResults.push(result);
+        }
+      });
+
+      const sortedResults = uniqueResults
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 25);
+      
+      console.log(`AI Search found ${sortedResults.length} unique places`);
+      
+      setSearchResults(sortedResults);
+      setShowSearchResults(sortedResults.length > 0);
+      
+      if (sortedResults.length > 0) {
+        addPlaceMarkersToMap(sortedResults);
+      }
+      
+    } catch (error) {
+      console.error('AI Search failed:', error);
+      setSearchResults([]);
+      setShowSearchResults(false);
+      if (placesLayerRef.current) {
+        placesLayerRef.current.removeAll();
+      }
+    }
+  };
+
+  // Simple AI query parser
+  const parseAIQuery = (query) => {
+    const lowerQuery = query.toLowerCase();
+    
+    // Extract rating mentions
+    const ratingMatch = lowerQuery.match(/(\d+)\s*star/);
+    const rating = ratingMatch ? parseInt(ratingMatch[1]) : null;
+    
+    // Extract proximity indicators
+    const proximityIndicators = ['near me', 'nearby', 'close to', 'around here'];
+    const proximity = proximityIndicators.find(indicator => lowerQuery.includes(indicator));
+    
+    // Extract main search term (remove rating and proximity words)
+    let searchTerm = query;
+    if (ratingMatch) {
+      searchTerm = searchTerm.replace(ratingMatch[0], '').trim();
+    }
+    proximityIndicators.forEach(indicator => {
+      searchTerm = searchTerm.replace(new RegExp(indicator, 'gi'), '').trim();
+    });
+    
+    // Clean up common words
+    searchTerm = searchTerm.replace(/\bwith\b|\bof\b|\ba\b|\ban\b/gi, '').trim();
+    
+    return {
+      searchTerm: searchTerm || query, // Fallback to original if cleaned term is empty
+      rating,
+      proximity,
+      originalQuery: query
+    };
+  };
+
   const addPlaceMarkersToMap = (places) => {
     if (!placesLayerRef.current) return;
 
@@ -633,17 +821,6 @@ useEffect(() => {
                 div.appendChild(typeElement);
               }
 
-              if (score) {
-                const relevanceElement = document.createElement("p");
-                relevanceElement.innerHTML = `<strong>Relevance:</strong> ${score}%`;
-                div.appendChild(relevanceElement);
-              }
-
-              if (searchArea) {
-                const foundFromElement = document.createElement("p");
-                foundFromElement.innerHTML = `<strong>Found from:</strong> ${searchArea}`;
-                div.appendChild(foundFromElement);
-              }
 
               const searchResultElement = document.createElement("p");
               searchResultElement.style.marginTop = "10px";
@@ -760,7 +937,11 @@ useEffect(() => {
     // Debounce search
     clearTimeout(window.searchTimeout);
     window.searchTimeout = setTimeout(() => {
-      handleSearch(value);
+      if (isAISearchEnabled) {
+        handleAISearch(value);
+      } else {
+        handleSearch(value);
+      }
     }, 300);
   };
 
@@ -770,7 +951,11 @@ useEffect(() => {
       // Clear any pending debounced search
       clearTimeout(window.searchTimeout);
       // Trigger immediate search
-      handleSearch(searchValue);
+      if (isAISearchEnabled) {
+        handleAISearch(searchValue);
+      } else {
+        handleSearch(searchValue);
+      }
     }
   };
 
@@ -931,11 +1116,18 @@ useEffect(() => {
           <input
             type="text"
             className="search-input"
-            placeholder="Search for places..."
+            placeholder={isAISearchEnabled ? "Try: 'pizza place near me with 4 star rating'" : "Search for places..."}
             value={searchValue}
             onChange={handleSearchInputChange}
             onKeyDown={handleSearchKeyDown}
           />
+          <button 
+            className={`ai-toggle-btn ${isAISearchEnabled ? 'active' : ''}`}
+            onClick={() => setIsAISearchEnabled(!isAISearchEnabled)}
+            title={isAISearchEnabled ? "Switch to regular search" : "Switch to AI search"}
+          >
+            🤖
+          </button>
           {searchValue && (
             <button className="clear-search-btn" onClick={clearSearch}>
               ✕
@@ -947,11 +1139,11 @@ useEffect(() => {
           <div className="search-results">
             <div className="search-results-header">
               <span className="search-results-count">
+                {isAISearchEnabled && (
+                  <span className="ai-indicator">🤖 AI: </span>
+                )}
                 {displayedResults.length} result{displayedResults.length !== 1 ? 's' : ''} found
               </span>
-              <button className="show-all-btn" onClick={showAllSearchResults}>
-                📍 Show All on Map
-              </button>
             </div>
             {displayedResults.map((result, index) => (
               <div
@@ -959,36 +1151,13 @@ useEffect(() => {
                 className="search-result-item"
               >
                 <div onClick={() => selectSearchResult(result)} style={{ cursor: 'pointer', flex: 1 }}>
-                  <div className="search-result-name">{result.name}</div>
-                  <div className="search-result-address">{result.address}</div>
-                  {result.categories && result.categories.length > 0 && (
-                    <div className="search-result-categories">
-                      {result.categories.map(cat => cat.label).join(', ')}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    {result.score && (
-                      <div className="search-result-distance">
-                        Relevance: {result.score}%
-                      </div>
-                    )}
-                    {result.searchArea && (
-                      <div style={{ fontSize: '11px', color: '#28a745', fontWeight: '500' }}>
-                        📍 {result.searchArea}
-                      </div>
+                  <div className="search-result-name">
+                    {result.name}
+                    {isAISearchEnabled && result.aiContext && (
+                      <span className="ai-badge">🤖</span>
                     )}
                   </div>
-                </div>
-                <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f0f0f0' }}>
-                  <button 
-                    className="navigate-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigateToPlace(result.location.latitude, result.location.longitude, result.name);
-                    }}
-                  >
-                    🧭 Get Directions
-                  </button>
+                  <div className="search-result-address">{result.address}</div>
                 </div>
               </div>
             ))}
