@@ -68,11 +68,11 @@
 /* Search Bar Styles */
 .search-bar-container {
   position: fixed;
-  top: 20px;
-  left: 80px; /* Position next to hamburger menu (which is at left: 20px and ~60px wide) */
+  top: 26px;
+  left: 76px; /* Position next to hamburger menu (20px + 44px + 12px gap) */
   z-index: 1001;
   width: 300px;
-  max-width: calc(100vw - 120px);
+  max-width: calc(100vw - 100px);
 }
 
 .search-input-wrapper {
@@ -379,8 +379,8 @@
 
   /* Search bar mobile styles */
   .search-bar-container {
-    top: 20px;
-    left: 80px;
+    top: 18px;
+    left: 68px;
     right: 16px;
     width: auto;
     max-width: none;
@@ -410,8 +410,8 @@
 
   /* Search bar extra small screen styles */
   .search-bar-container {
-    top: 20px;
-    left: 75px;
+    top: 10px;
+    left: 60px;
     right: 12px;
   }
 
