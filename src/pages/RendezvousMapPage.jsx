@@ -497,7 +497,6 @@ const RendezvousMapPage = () => {
       };
 
       const popupTemplate = {
-<<<<<<< HEAD
         title: "{name}",
         content: [
           {
@@ -558,45 +557,6 @@ const RendezvousMapPage = () => {
             },
           },
         ],
-||||||| ccbeb56
-        title: place.name,
-        content: `
-          <div style="padding: 10px;">
-            <p><strong>Address:</strong> ${place.address}</p>
-            ${place.categories && place.categories.length > 0 ? 
-              `<p><strong>Type:</strong> ${place.categories.map(cat => cat.label).join(', ')}</p>` : ''}
-            ${place.score ? 
-              `<p><strong>Relevance:</strong> ${place.score}%</p>` : ''}
-            ${place.searchArea ? 
-              `<p><strong>Found from:</strong> ${place.searchArea}</p>` : ''}
-            <p style="margin-top: 10px; color: #007bff;">
-              📍 Search result
-            </p>
-          </div>
-        `
-=======
-        title: place.name,
-        content: `
-          <div style="padding: 10px;">
-            <p><strong>Address:</strong> ${place.address}</p>
-            ${place.categories && place.categories.length > 0 ? 
-              `<p><strong>Type:</strong> ${place.categories.map(cat => cat.label).join(', ')}</p>` : ''}
-            ${place.score ? 
-              `<p><strong>Relevance:</strong> ${place.score}%</p>` : ''}
-            ${place.searchArea ? 
-              `<p><strong>Found from:</strong> ${place.searchArea}</p>` : ''}
-            <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
-              <button onclick="window.navigateToPlace(${place.location.latitude}, ${place.location.longitude}, '${place.name.replace(/'/g, "\\'")}');" 
-                      style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; width: 100%; margin-bottom: 8px;">
-                🧭 Get Directions
-              </button>
-            </div>
-            <p style="margin-top: 10px; color: #007bff; font-size: 12px;">
-              📍 Search result
-            </p>
-          </div>
-        `
->>>>>>> origin/main
       };
 
       const pointGraphic = new Graphic({
