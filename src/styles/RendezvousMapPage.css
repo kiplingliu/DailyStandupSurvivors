@@ -219,6 +219,24 @@
   font-weight: 500;
 }
 
+.navigate-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  width: 100%;
+}
+
+.navigate-btn:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
 .sharing-panel {
   background: #ffffff;
   border-top: 1px solid #e0e0e0;

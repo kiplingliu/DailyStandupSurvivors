@@ -51,6 +51,14 @@ const RendezvousMapPage = () => {
     }
   }, [rendezvous, mapLoaded]);
 
+  // Make navigation function globally available for popup buttons
+  useEffect(() => {
+    window.navigateToPlace = navigateToPlace;
+    return () => {
+      delete window.navigateToPlace;
+    };
+  }, []);
+
   // Click outside handler for search results
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -482,6 +490,7 @@ const RendezvousMapPage = () => {
       };
 
       const popupTemplate = {
+<<<<<<< HEAD
         title: "{name}",
         content: [
           {
@@ -542,6 +551,45 @@ const RendezvousMapPage = () => {
             },
           },
         ],
+||||||| ccbeb56
+        title: place.name,
+        content: `
+          <div style="padding: 10px;">
+            <p><strong>Address:</strong> ${place.address}</p>
+            ${place.categories && place.categories.length > 0 ? 
+              `<p><strong>Type:</strong> ${place.categories.map(cat => cat.label).join(', ')}</p>` : ''}
+            ${place.score ? 
+              `<p><strong>Relevance:</strong> ${place.score}%</p>` : ''}
+            ${place.searchArea ? 
+              `<p><strong>Found from:</strong> ${place.searchArea}</p>` : ''}
+            <p style="margin-top: 10px; color: #007bff;">
+              📍 Search result
+            </p>
+          </div>
+        `
+=======
+        title: place.name,
+        content: `
+          <div style="padding: 10px;">
+            <p><strong>Address:</strong> ${place.address}</p>
+            ${place.categories && place.categories.length > 0 ? 
+              `<p><strong>Type:</strong> ${place.categories.map(cat => cat.label).join(', ')}</p>` : ''}
+            ${place.score ? 
+              `<p><strong>Relevance:</strong> ${place.score}%</p>` : ''}
+            ${place.searchArea ? 
+              `<p><strong>Found from:</strong> ${place.searchArea}</p>` : ''}
+            <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
+              <button onclick="window.navigateToPlace(${place.location.latitude}, ${place.location.longitude}, '${place.name.replace(/'/g, "\\'")}');" 
+                      style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; width: 100%; margin-bottom: 8px;">
+                🧭 Get Directions
+              </button>
+            </div>
+            <p style="margin-top: 10px; color: #007bff; font-size: 12px;">
+              📍 Search result
+            </p>
+          </div>
+        `
+>>>>>>> origin/main
       };
 
       const pointGraphic = new Graphic({
@@ -682,6 +730,70 @@ const RendezvousMapPage = () => {
     }
   };
 
+  const navigateToPlace = (latitude, longitude, placeName) => {
+    // Get user's current location first
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by this browser. Please use a maps app manually.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+        
+        // Create ArcGIS navigation URL
+        const arcgisUrl = `https://www.arcgis.com/apps/directions/index.html?startLat=${userLat}&startLng=${userLng}&endLat=${latitude}&endLng=${longitude}`;
+        
+        // Try different navigation options based on device
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+          // For mobile, try ArcGIS Navigator app first, then fallback options
+          const navigatorAppUrl = `arcgis-navigator://?stop=${latitude},${longitude}&stopname=${encodeURIComponent(placeName)}&start=${userLat},${userLng}&startname=Current%20Location`;
+          
+          // Try ArcGIS Navigator app
+          const tempLink = document.createElement('a');
+          tempLink.href = navigatorAppUrl;
+          tempLink.click();
+          
+          // Fallback to web version after a short delay
+          setTimeout(() => {
+            // Try ArcGIS web directions
+            window.open(arcgisUrl, '_blank');
+          }, 1000);
+          
+          // Additional fallback to device's default maps after longer delay
+          setTimeout(() => {
+            // iOS Maps fallback
+            if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+              const appleMapsUrl = `http://maps.apple.com/?saddr=${userLat},${userLng}&daddr=${latitude},${longitude}&dirflg=d`;
+              window.open(appleMapsUrl, '_blank');
+            } else {
+              // Android - use generic maps intent
+              const genericMapsUrl = `https://maps.google.com/maps?saddr=${userLat},${userLng}&daddr=${latitude},${longitude}&dirflg=d`;
+              window.open(genericMapsUrl, '_blank');
+            }
+          }, 2000);
+        } else {
+          // Desktop - open ArcGIS directions in new tab
+          window.open(arcgisUrl, '_blank');
+        }
+      },
+      (error) => {
+        console.error('Error getting user location:', error);
+        // Fallback - just open ArcGIS with destination
+        const fallbackUrl = `https://www.arcgis.com/home/webmap/viewer.html?center=${longitude},${latitude}&level=16&marker=${longitude},${latitude}`;
+        window.open(fallbackUrl, '_blank');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      }
+    );
+  };
+
   const clearSearch = () => {
     setSearchValue('');
     setSearchResults([]);
@@ -764,26 +876,38 @@ const RendezvousMapPage = () => {
               <div
                 key={index}
                 className="search-result-item"
-                onClick={() => selectSearchResult(result)}
               >
-                <div className="search-result-name">{result.name}</div>
-                <div className="search-result-address">{result.address}</div>
-                {result.categories && result.categories.length > 0 && (
-                  <div className="search-result-categories">
-                    {result.categories.map(cat => cat.label).join(', ')}
+                <div onClick={() => selectSearchResult(result)} style={{ cursor: 'pointer', flex: 1 }}>
+                  <div className="search-result-name">{result.name}</div>
+                  <div className="search-result-address">{result.address}</div>
+                  {result.categories && result.categories.length > 0 && (
+                    <div className="search-result-categories">
+                      {result.categories.map(cat => cat.label).join(', ')}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    {result.score && (
+                      <div className="search-result-distance">
+                        Relevance: {result.score}%
+                      </div>
+                    )}
+                    {result.searchArea && (
+                      <div style={{ fontSize: '11px', color: '#28a745', fontWeight: '500' }}>
+                        📍 {result.searchArea}
+                      </div>
+                    )}
                   </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  {result.score && (
-                    <div className="search-result-distance">
-                      Relevance: {result.score}%
-                    </div>
-                  )}
-                  {result.searchArea && (
-                    <div style={{ fontSize: '11px', color: '#28a745', fontWeight: '500' }}>
-                      📍 {result.searchArea}
-                    </div>
-                  )}
+                </div>
+                <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f0f0f0' }}>
+                  <button 
+                    className="navigate-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigateToPlace(result.location.latitude, result.location.longitude, result.name);
+                    }}
+                  >
+                    🧭 Get Directions
+                  </button>
                 </div>
               </div>
             ))}
