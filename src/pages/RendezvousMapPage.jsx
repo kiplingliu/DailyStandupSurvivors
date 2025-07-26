@@ -129,18 +129,18 @@ useEffect(() => {
               </div>
             `;
             const buttonContainer = document.createElement("div");
+            buttonContainer.className = "vote-buttons";
 
             const upvoteButton = document.createElement("button");
-            upvoteButton.innerText = "Upvote";
-            upvoteButton.style.cssText = "background-color: green; color: white; margin-right: 5px;";
-            upvoteButton.classList.add("esri-button");
+            upvoteButton.innerHTML = "&#x25B2;"; // Up arrow
+            upvoteButton.classList.add("vote-btn", "upvote-btn");
+            upvoteButton.className = `vote-btn upvote-btn ${candidate.userVote === 'up' ? 'voted' : ''}`;
             upvoteButton.addEventListener("click", () => handleVote(candidate.placeId, "upvotes"));
             buttonContainer.appendChild(upvoteButton);
             
             const downvoteButton = document.createElement("button");
-            downvoteButton.innerText = "Downvote";
-            downvoteButton.style.cssText = "background-color: red; color: white;";
-            downvoteButton.classList.add("esri-button");
+            downvoteButton.innerHTML = "&#x25BC;"; // Down arrow
+            downvoteButton.className = `vote-btn downvote-btn ${candidate.userVote === 'down' ? 'voted' : ''}`;
             downvoteButton.addEventListener("click", () => handleVote(candidate.placeId, "downvotes"));
             buttonContainer.appendChild(downvoteButton);
 
@@ -970,7 +970,8 @@ useEffect(() => {
         existingCandidate.isSelected = true;
         return newCandidates;
       }
-      return [...newCandidates, { ...place, upvotes: 0, downvotes: 0, isSelected: true }];
+      // When a new candidate is selected, it's automatically upvoted.
+      return [...newCandidates, { ...place, upvotes: 1, downvotes: 0, isSelected: true, userVote: 'up' }];
     });
   };
 
@@ -978,7 +979,36 @@ useEffect(() => {
     setCandidates((prevCandidates) => {
       return prevCandidates.map((candidate) => {
         if (candidate.placeId === placeId) {
-          return { ...candidate, [voteType]: candidate[voteType] + 1, isSelected: true };
+          const newVoteDirection = voteType === 'upvotes' ? 'up' : 'down';
+          // If the user is trying to cast the same vote again, do nothing.
+          if (candidate.userVote === newVoteDirection) {
+            return candidate;
+          }
+
+          let newUpvotes = candidate.upvotes;
+          let newDownvotes = candidate.downvotes;
+
+          // If there was a previous vote, reverse it.
+          if (candidate.userVote === 'up') {
+            newUpvotes -= 1;
+          } else if (candidate.userVote === 'down') {
+            newDownvotes -= 1;
+          }
+
+          // Apply the new vote.
+          if (newVoteDirection === 'up') {
+            newUpvotes += 1;
+          } else {
+            newDownvotes += 1;
+          }
+
+          return {
+            ...candidate,
+            upvotes: newUpvotes,
+            downvotes: newDownvotes,
+            isSelected: true,
+            userVote: newVoteDirection,
+          };
         }
         return { ...candidate, isSelected: false };
       });

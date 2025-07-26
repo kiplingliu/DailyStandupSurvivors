@@ -482,3 +482,34 @@
     padding-right: 70px; /* Adjust for extra small screens */
   }
 } 
+.vote-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.vote-btn {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 5px 10px;
+  transition: background-color 0.3s;
+}
+
+.upvote-btn {
+  background-color: #4CAF50; /* Brighter green */
+  color: white;
+}
+
+.downvote-btn {
+  background-color: #f44336; /* Brighter red */
+  color: white;
+}
+
+.vote-btn.voted {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
