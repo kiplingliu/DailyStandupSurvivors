@@ -21,11 +21,11 @@ const LoadingScreen = ({ onLoadingComplete }) => {
       <div className="loading-content">
         <div className="logo-container">
           <div className="logo">
-            <span className="logo-text">DS</span>
+            <span className="logo-text">RV</span>
           </div>
         </div>
         
-        <h1 className="title">Daily Standup Survivors</h1>
+        <h1 className="title">RendezvView</h1>
         <p className="subtitle">Social Meetup Planner</p>
         
         <div className="loading-dots">

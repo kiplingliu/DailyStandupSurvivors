@@ -10,14 +10,18 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #1a1a2e;
-  color: #ffffff;
+  background: #ffffff;
+  color: #333333;
   overflow-x: hidden;
+  width: 100vw;
+  height: 100vh;
 }
 
 .App {
   min-height: 100vh;
-  width: 100%;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Remove default focus outlines and add custom ones */
@@ -26,29 +30,31 @@ body {
 }
 
 *:focus-visible {
-  outline: 2px solid #e94560;
+  outline: 2px solid #007bff;
   outline-offset: 2px;
 }
 
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
+  width: 100vw;
+  height: 100vh;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #16213e;
+  background: #f1f1f1;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #e94560;
-  border-radius: 4px;
+  background: #c1c1c1;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #d63384;
+  background: #a8a8a8;
 }

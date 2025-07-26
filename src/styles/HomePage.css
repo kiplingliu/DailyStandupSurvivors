@@ -1,150 +1,416 @@
 .home-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  color: #ffffff;
+  background: #ffffff;
+  color: #333333;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
-  background: rgba(15, 52, 96, 0.3);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(233, 69, 96, 0.2);
+  background: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
   padding: 20px 0;
   position: sticky;
   top: 0;
   z-index: 100;
+  width: 100%;
 }
 
 .header-content {
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
-  text-align: center;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.app-brand {
+  text-align: right;
 }
 
 .app-title {
   font-size: 24px;
-  font-weight: bold;
+  font-weight: 300;
   margin: 0 0 5px 0;
-  background: linear-gradient(135deg, #ffffff 0%, #e94560 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #007bff;
+  letter-spacing: 1px;
 }
 
-.app-subtitle {
-  font-size: 14px;
-  color: #a8a8a8;
+.welcome-title {
+  font-size: 16px;
+  font-weight: 300;
+  color: #666666;
   margin: 0;
 }
 
 .main-content {
+  flex: 1;
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 20px;
+  box-sizing: border-box;
 }
 
-.welcome-section {
-  text-align: center;
-  margin-bottom: 60px;
+.meetups-section {
+  background: #ffffff;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.welcome-title {
-  font-size: 32px;
-  font-weight: bold;
-  margin: 0 0 20px 0;
-  background: linear-gradient(135deg, #ffffff 0%, #e94560 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.welcome-text {
-  font-size: 18px;
-  color: #a8a8a8;
-  max-width: 600px;
-  margin: 0 auto;
-  line-height: 1.6;
-}
-
-.placeholder-section {
+.meetups-header {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  min-height: 400px;
-}
-
-.placeholder-card {
-  background: rgba(15, 52, 96, 0.2);
-  border: 1px solid rgba(233, 69, 96, 0.3);
-  border-radius: 16px;
-  padding: 40px;
-  text-align: center;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  max-width: 500px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  gap: 20px;
   width: 100%;
 }
 
-.placeholder-card h3 {
-  font-size: 24px;
-  margin: 0 0 20px 0;
-  color: #e94560;
+.section-title {
+  font-size: 28px;
+  font-weight: 300;
+  color: #333333;
+  margin: 0;
+  letter-spacing: 1px;
 }
 
-.placeholder-card p {
-  font-size: 16px;
-  color: #a8a8a8;
-  line-height: 1.6;
+.create-meetup-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.create-meetup-btn:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+.meetups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.meetup-card {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.meetup-card:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+}
+
+.meetup-info {
+  flex: 1;
+}
+
+.meetup-name {
+  font-size: 18px;
+  font-weight: 400;
+  color: #333333;
+  margin: 0 0 8px 0;
+}
+
+.meetup-time {
+  font-size: 14px;
+  color: #007bff;
+  font-weight: 400;
+  margin: 0 0 4px 0;
+}
+
+.meetup-location {
+  font-size: 14px;
+  color: #666666;
   margin: 0;
+}
+
+.meetup-actions {
+  margin-left: 20px;
+}
+
+.action-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  background: #218838;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  padding: 0;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h3 {
+  font-size: 20px;
+  font-weight: 400;
+  color: #333333;
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666666;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: #f8f9fa;
+  color: #333333;
+}
+
+.meetup-form {
+  padding: 24px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 400;
+  color: #333333;
+  margin-bottom: 8px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  background: white;
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.location-input-group {
+  display: flex;
+  gap: 10px;
+}
+
+.location-input-group input {
+  flex: 1;
+}
+
+.location-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 50px;
+}
+
+.location-btn:hover {
+  background: #0056b3;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.cancel-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-btn:hover {
+  background: #5a6268;
+}
+
+.submit-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submit-btn:hover {
+  background: #0056b3;
 }
 
 /* Mobile responsive */
 @media (max-width: 768px) {
   .header {
-    padding: 15px 0;
+    padding: 16px 0;
+  }
+  
+  .header-content {
+    justify-content: center;
+    padding: 0 16px;
+  }
+  
+  .app-brand {
+    text-align: center;
   }
   
   .app-title {
     font-size: 20px;
   }
   
-  .app-subtitle {
-    font-size: 12px;
-  }
-  
-  .main-content {
-    padding: 30px 15px;
-  }
-  
   .welcome-title {
-    font-size: 24px;
-  }
-  
-  .welcome-text {
-    font-size: 16px;
-  }
-  
-  .placeholder-card {
-    padding: 30px 20px;
-    margin: 0 10px;
-  }
-  
-  .placeholder-card h3 {
-    font-size: 20px;
-  }
-  
-  .placeholder-card p {
     font-size: 14px;
   }
-}
-
-/* Tablet responsive */
-@media (min-width: 769px) and (max-width: 1024px) {
+  
   .main-content {
-    padding: 50px 30px;
+    padding: 24px 16px;
   }
   
-  .welcome-title {
-    font-size: 28px;
+  .meetups-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
   }
-} 
+  
+  .section-title {
+    font-size: 24px;
+    text-align: center;
+  }
+  
+  .create-meetup-btn {
+    width: 100%;
+  }
+  
+  .meetup-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 20px;
+  }
+  
+  .meetup-actions {
+    margin-left: 0;
+    align-self: stretch;
+  }
+  
+  .action-btn {
+    width: 100%;
+    padding: 12px;
+  }
+  
+  .modal-content {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .modal-header,
+  .meetup-form {
+    padding: 20px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .cancel-btn,
+  .submit-btn {
+    width: 100%;
+  }
+}
