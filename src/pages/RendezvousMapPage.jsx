@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import '../styles/RendezvousMapPage.css';
+import HamburgerMenu from './HamburgerMenu';
 import Map from "@arcgis/core/Map";
 import MapView from "@arcgis/core/views/MapView";
 import Graphic from "@arcgis/core/Graphic";
@@ -104,6 +105,8 @@ const RendezvousMapPage = () => {
         zoom: 15 // Good zoom level for street view
       });
 
+      view.ui.move("zoom", "bottom-right");
+
       // Create graphics layer for the rendezvous point
       const graphicsLayer = new GraphicsLayer();
       map.add(graphicsLayer);
@@ -169,18 +172,6 @@ const RendezvousMapPage = () => {
     }
   };
 
-  const shareViaEmail = () => {
-    const subject = encodeURIComponent(`Join me for: ${rendezvous?.name || 'Rendezvous'}`);
-    const body = encodeURIComponent(
-      `Hi! I'd like to invite you to join me for "${rendezvous?.name || 'a rendezvous'}"\n\n` +
-      `📅 When: ${rendezvous ? new Date(rendezvous.datetime).toLocaleString() : 'TBD'}\n` +
-      `📍 Where: ${rendezvous?.location || 'TBD'}\n\n` +
-      `Click this link to view the location and join: ${shareableLink}\n\n` +
-      `See you there!`
-    );
-    window.open(`mailto:?subject=${subject}&body=${body}`);
-  };
-
   if (!rendezvous) {
     return (
       <div className="loading-container">
@@ -191,47 +182,15 @@ const RendezvousMapPage = () => {
 
   return (
     <div className="rendezvous-map-page">
-      <div className="map-header">
-        <div className="header-content">
-          <button className="back-btn" onClick={() => navigate('/')}>
-            ← Back to Home
-          </button>
-          <div className="rendezvous-info">
-            <h1 className="rendezvous-title">{rendezvous.name}</h1>
-            <p className="rendezvous-details">
-              {new Date(rendezvous.datetime).toLocaleString()} • {rendezvous.location}
-            </p>
-          </div>
-        </div>
-      </div>
-
+      <HamburgerMenu
+        title={rendezvous.name}
+        time={rendezvous.datetime}
+        userAddress={rendezvous.location}
+        shareableLink={shareableLink}
+        copyShareableLink={copyShareableLink}
+        copied={copied}
+      />
       <div className="map-container" ref={mapRef}></div>
-
-      <div className="sharing-panel">
-        <h3>Share this Rendezvous</h3>
-        <div className="share-actions">
-          <div className="share-link-container">
-            <input 
-              type="text" 
-              value={shareableLink} 
-              readOnly 
-              className="share-link-input"
-            />
-            <button 
-              className={`copy-btn ${copied ? 'copied' : ''}`}
-              onClick={copyShareableLink}
-            >
-              {copied ? '✓ Copied!' : '📋 Copy'}
-            </button>
-          </div>
-          <button className="email-share-btn" onClick={shareViaEmail}>
-            📧 Share via Email
-          </button>
-        </div>
-        <p className="share-help">
-          Send this link to friends so they can view the location and join your rendezvous!
-        </p>
-      </div>
     </div>
   );
 };
