@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/HomePage.css';
-
 const HomePage = () => {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
