@@ -4,10 +4,11 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: #F5F4FF;
+  background: #303D66;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  padding-top: 33vh;
   z-index: 1000;
   transition: opacity 0.5s ease-in-out;
 }
@@ -18,15 +19,20 @@
 
 .loading-content {
   text-align: center;
+  animation: logoFloat 2s ease-in-out infinite;
 }
 
-.loading-content h1 {
-  font-size: 32px;
-  color: #303D66;
-  margin-bottom: 16px;
+.loading-logo {
+  width: 280px;
+  height: auto;
+  max-width: 85vw;
 }
 
-.loading-content p {
-  font-size: 18px;
-  color: #5C667B;
+@keyframes logoFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
