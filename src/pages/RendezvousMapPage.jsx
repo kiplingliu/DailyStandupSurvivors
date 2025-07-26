@@ -564,14 +564,18 @@ useEffect(() => {
         .sort((a, b) => b.score - a.score)
         .slice(0, 25);
       
-      console.log(`Found ${sortedResults.length} unique places from ${searchCenters.length} search centers`);
+      // Filter results to only show places between all user locations
+      const filteredResults = filterResultsBetweenUsers(sortedResults, mainSearchCenter, characterLocations);
       
-      setSearchResults(sortedResults);
-      setShowSearchResults(sortedResults.length > 0);
+      console.log(`Found ${sortedResults.length} unique places from ${searchCenters.length} search centers`);
+      console.log(`After filtering between users: ${filteredResults.length} places`);
+      
+      setSearchResults(filteredResults);
+      setShowSearchResults(filteredResults.length > 0);
       
       // Add place markers to the map
-      if (sortedResults.length > 0) {
-        addPlaceMarkersToMap(sortedResults);
+      if (filteredResults.length > 0) {
+        addPlaceMarkersToMap(filteredResults);
       }
       
     } catch (error) {
@@ -721,13 +725,17 @@ useEffect(() => {
         .sort((a, b) => b.score - a.score)
         .slice(0, 25);
       
+      // Filter results to only show places between all user locations
+      const filteredResults = filterResultsBetweenUsers(sortedResults, mainSearchCenter, characterLocations);
+      
       console.log(`AI Search found ${sortedResults.length} unique places`);
+      console.log(`After filtering between users: ${filteredResults.length} places`);
       
-      setSearchResults(sortedResults);
-      setShowSearchResults(sortedResults.length > 0);
+      setSearchResults(filteredResults);
+      setShowSearchResults(filteredResults.length > 0);
       
-      if (sortedResults.length > 0) {
-        addPlaceMarkersToMap(sortedResults);
+      if (filteredResults.length > 0) {
+        addPlaceMarkersToMap(filteredResults);
       }
       
     } catch (error) {
@@ -738,6 +746,53 @@ useEffect(() => {
         placesLayerRef.current.removeAll();
       }
     }
+  };
+
+  // Function to check if a point is within the triangle formed by the three user locations
+  const isPointInTriangle = (point, triangle) => {
+    const [p1, p2, p3] = triangle;
+    
+    // Calculate the area of the main triangle
+    const areaOrig = Math.abs((p2.longitude - p1.longitude) * (p3.latitude - p1.latitude) - 
+                             (p3.longitude - p1.longitude) * (p2.latitude - p1.latitude));
+    
+    // Calculate areas of triangles formed by the point and each edge
+    const area1 = Math.abs((p1.longitude - point.longitude) * (p2.latitude - point.latitude) - 
+                          (p2.longitude - point.longitude) * (p1.latitude - point.latitude));
+    
+    const area2 = Math.abs((p2.longitude - point.longitude) * (p3.latitude - point.latitude) - 
+                          (p3.longitude - point.longitude) * (p2.latitude - point.latitude));
+    
+    const area3 = Math.abs((p3.longitude - point.longitude) * (p1.latitude - point.latitude) - 
+                          (p1.longitude - point.longitude) * (p3.latitude - point.latitude));
+    
+    // Check if sum of areas equals original area (with small tolerance for floating point errors)
+    return Math.abs(areaOrig - (area1 + area2 + area3)) < 0.0001;
+  };
+
+  // Function to filter results to only show places between all user locations
+  const filterResultsBetweenUsers = (results, mainCenter, characterLocations) => {
+    // If we don't have at least 2 character locations, return all results
+    if (characterLocations.length < 2) {
+      return results;
+    }
+
+    // Create triangle points from main location and first two characters
+    const trianglePoints = [
+      { latitude: mainCenter.latitude, longitude: mainCenter.longitude },
+      { latitude: characterLocations[0].latitude, longitude: characterLocations[0].longitude },
+      { latitude: characterLocations[1].latitude, longitude: characterLocations[1].longitude }
+    ];
+
+    // Filter results to only include places within the triangle
+    return results.filter(result => {
+      const resultPoint = {
+        latitude: result.location.latitude,
+        longitude: result.location.longitude
+      };
+      
+      return isPointInTriangle(resultPoint, trianglePoints);
+    });
   };
 
   // Simple AI query parser
