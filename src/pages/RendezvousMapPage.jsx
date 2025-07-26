@@ -74,36 +74,110 @@ const RendezvousMapPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!candidateLayerRef.current) return;
-
-    candidateLayerRef.current.removeAll();
-
-    candidates.forEach((candidate) => {
-      const point = {
-        type: "point",
-        longitude: candidate.location.longitude,
-        latitude: candidate.location.latitude,
-      };
-
-      const markerSymbol = {
-        type: "simple-marker",
-        color: [255, 255, 0], // Yellow for candidates
-        size: "14px",
-        outline: {
-          color: [0, 0, 0],
-          width: 2,
-        },
-      };
-
-      const pointGraphic = new Graphic({
-        geometry: point,
-        symbol: markerSymbol,
-        attributes: candidate,
-      });
-
-      candidateLayerRef.current.add(pointGraphic);
-    });
+    const selectedCandidate = candidates.find((c) => c.isSelected);
+    if (selectedCandidate && mapViewRef.current && candidateLayerRef.current) {
+      const candidateGraphic = candidateLayerRef.current.graphics.find(
+        (g) => g.attributes.placeId === selectedCandidate.placeId
+      );
+      if (candidateGraphic) {
+        mapViewRef.current.popup.open({
+          features: [candidateGraphic],
+          location: candidateGraphic.geometry,
+        });
+      }
+    } else if (mapViewRef.current) {
+      mapViewRef.current.popup.close();
+    }
   }, [candidates]);
+
+useEffect(() => {
+  if (!candidateLayerRef.current || !mapViewRef.current) return;
+
+  // 1. Redraw all candidate graphics with the latest data
+  candidateLayerRef.current.removeAll();
+
+  candidates.forEach((candidate) => {
+    const point = {
+      type: "point",
+      longitude: candidate.location.longitude,
+      latitude: candidate.location.latitude,
+    };
+    const markerSymbol = {
+      type: "simple-marker",
+      color: [255, 255, 0], // Yellow for candidates
+      size: "14px",
+      outline: { color: [0, 0, 0], width: 2 },
+    };
+
+    // The popup template is now created with fresh data each time
+    const popupTemplate = {
+      title: "{name}",
+      content: [
+        {
+          type: "custom",
+          creator: () => {
+            // Note: `candidate` here is from the fresh `candidates` state
+            const div = document.createElement("div");
+            div.innerHTML = `
+              <div style="padding: 10px;">
+                <p><strong>${candidate.name}</strong></p>
+                <p>${candidate.address}</p>
+                <p>Upvotes: ${candidate.upvotes}, Downvotes: ${candidate.downvotes}</p>
+              </div>
+            `;
+            const buttonContainer = document.createElement("div");
+
+            const upvoteButton = document.createElement("button");
+            upvoteButton.innerText = "Upvote";
+            upvoteButton.style.cssText = "background-color: green; color: white; margin-right: 5px;";
+            upvoteButton.classList.add("esri-button");
+            upvoteButton.addEventListener("click", () => handleVote(candidate.placeId, "upvotes"));
+            buttonContainer.appendChild(upvoteButton);
+            
+            const downvoteButton = document.createElement("button");
+            downvoteButton.innerText = "Downvote";
+            downvoteButton.style.cssText = "background-color: red; color: white;";
+            downvoteButton.classList.add("esri-button");
+            downvoteButton.addEventListener("click", () => handleVote(candidate.placeId, "downvotes"));
+            buttonContainer.appendChild(downvoteButton);
+
+            div.appendChild(buttonContainer);
+            return div;
+          },
+        },
+      ],
+    };
+
+    const pointGraphic = new Graphic({
+      geometry: point,
+      symbol: markerSymbol,
+      attributes: candidate, // Ensure attributes have the latest data
+      popupTemplate: popupTemplate,
+    });
+
+    candidateLayerRef.current.add(pointGraphic);
+  });
+
+  // 2. Find the selected candidate and open its popup
+  const selectedCandidate = candidates.find((c) => c.isSelected);
+  const popup = mapViewRef.current.popup;
+
+  if (selectedCandidate) {
+    const candidateGraphic = candidateLayerRef.current.graphics.find(
+      (g) => g.attributes.placeId === selectedCandidate.placeId
+    );
+    if (candidateGraphic) {
+      // Open the popup for the newly created graphic
+      popup.open({
+        features: [candidateGraphic],
+        location: candidateGraphic.geometry,
+      });
+    }
+  } else {
+    // If no candidate is selected, ensure the popup is closed
+    popup.close();
+  }
+}, [candidates]); // This single effect handles all updates
 
   const geocodeAddress = async (address) => {
     try {
@@ -242,6 +316,13 @@ const RendezvousMapPage = () => {
 
       // Store the view reference for later use
       mapViewRef.current = view;
+
+      // Disable docking
+      view.popup.dockEnabled = false;
+      view.popup.dockOptions = {
+        buttonEnabled: false,
+        breakpoint: false
+      };
 
       view.ui.move("zoom", "bottom-right");
 
@@ -490,7 +571,6 @@ const RendezvousMapPage = () => {
       };
 
       const popupTemplate = {
-<<<<<<< HEAD
         title: "{name}",
         content: [
           {
@@ -551,45 +631,6 @@ const RendezvousMapPage = () => {
             },
           },
         ],
-||||||| ccbeb56
-        title: place.name,
-        content: `
-          <div style="padding: 10px;">
-            <p><strong>Address:</strong> ${place.address}</p>
-            ${place.categories && place.categories.length > 0 ? 
-              `<p><strong>Type:</strong> ${place.categories.map(cat => cat.label).join(', ')}</p>` : ''}
-            ${place.score ? 
-              `<p><strong>Relevance:</strong> ${place.score}%</p>` : ''}
-            ${place.searchArea ? 
-              `<p><strong>Found from:</strong> ${place.searchArea}</p>` : ''}
-            <p style="margin-top: 10px; color: #007bff;">
-              📍 Search result
-            </p>
-          </div>
-        `
-=======
-        title: place.name,
-        content: `
-          <div style="padding: 10px;">
-            <p><strong>Address:</strong> ${place.address}</p>
-            ${place.categories && place.categories.length > 0 ? 
-              `<p><strong>Type:</strong> ${place.categories.map(cat => cat.label).join(', ')}</p>` : ''}
-            ${place.score ? 
-              `<p><strong>Relevance:</strong> ${place.score}%</p>` : ''}
-            ${place.searchArea ? 
-              `<p><strong>Found from:</strong> ${place.searchArea}</p>` : ''}
-            <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
-              <button onclick="window.navigateToPlace(${place.location.latitude}, ${place.location.longitude}, '${place.name.replace(/'/g, "\\'")}');" 
-                      style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; width: 100%; margin-bottom: 8px;">
-                🧭 Get Directions
-              </button>
-            </div>
-            <p style="margin-top: 10px; color: #007bff; font-size: 12px;">
-              📍 Search result
-            </p>
-          </div>
-        `
->>>>>>> origin/main
       };
 
       const pointGraphic = new Graphic({
@@ -695,10 +736,24 @@ const RendezvousMapPage = () => {
 
   const addCandidate = (place) => {
     setCandidates((prevCandidates) => {
-      if (prevCandidates.find((candidate) => candidate.placeId === place.placeId)) {
-        return prevCandidates;
+      const newCandidates = prevCandidates.map(c => ({...c, isSelected: false}));
+      const existingCandidate = newCandidates.find((candidate) => candidate.placeId === place.placeId);
+      if (existingCandidate) {
+        existingCandidate.isSelected = true;
+        return newCandidates;
       }
-      return [...prevCandidates, place];
+      return [...newCandidates, { ...place, upvotes: 0, downvotes: 0, isSelected: true }];
+    });
+  };
+
+  const handleVote = (placeId, voteType) => {
+    setCandidates((prevCandidates) => {
+      return prevCandidates.map((candidate) => {
+        if (candidate.placeId === placeId) {
+          return { ...candidate, [voteType]: candidate[voteType] + 1, isSelected: true };
+        }
+        return { ...candidate, isSelected: false };
+      });
     });
   };
 
