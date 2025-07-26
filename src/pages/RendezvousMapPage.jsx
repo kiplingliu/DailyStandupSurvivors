@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import '../styles/RendezvousMapPage.css';
 import HamburgerMenu from './HamburgerMenu';
+import useAppNotification from '../hooks/useAppNotification';
 import Map from "@arcgis/core/Map";
 import MapView from "@arcgis/core/views/MapView";
 import Graphic from "@arcgis/core/Graphic";
@@ -11,11 +12,12 @@ import * as locator from "@arcgis/core/rest/locator";
 const RendezvousMapPage = () => {
   const { rendezvousData } = useParams();
   const navigate = useNavigate();
+  const notification = useAppNotification();
   const mapRef = useRef(null);
   const searchRef = useRef(null);
   const mapViewRef = useRef(null);
   const placesLayerRef = useRef(null);
-  const placeholderLayerRef = useRef(null);
+  const charactersLayerRef = useRef(null);
   const candidateLayerRef = useRef(null);
   const [rendezvous, setRendezvous] = useState(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -23,7 +25,8 @@ const RendezvousMapPage = () => {
   const [searchValue, setSearchValue] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [placeholderLocations, setPlaceholderLocations] = useState([]);
+  const [characterLocations, setCharacterLocations] = useState([]);
+  const [_joinedCharacters, setJoinedCharacters] = useState([]);
   const [candidates, setCandidates] = useState([]);
 
   // Hardcoded nice-looking shareable link
@@ -130,46 +133,47 @@ const RendezvousMapPage = () => {
     }
   };
 
-  // Generate 5 placeholder locations around the main location (approximately 5km radius)
-  const generatePlaceholderLocations = (centerLat, centerLng) => {
-    const radius = 0.045; // Approximately 5km in degrees
-    
-    // Create 5 locations in different directions
-    const directions = [
-      { name: "North", lat: centerLat + radius, lng: centerLng, color: [255, 165, 0] }, // Orange
-      { name: "South", lat: centerLat - radius, lng: centerLng, color: [128, 0, 128] }, // Purple
-      { name: "East", lat: centerLat, lng: centerLng + radius, color: [255, 20, 147] }, // Deep Pink
-      { name: "West", lat: centerLat, lng: centerLng - radius, color: [34, 139, 34] }, // Forest Green
-      { name: "Northeast", lat: centerLat + (radius * 0.7), lng: centerLng + (radius * 0.7), color: [255, 140, 0] } // Dark Orange
+  // Generate character locations with specific coordinates
+  const generateCharacterLocations = () => {
+    // Create Barry Allen and Pietro Maximoff at specific coordinates
+    return [
+      { 
+        name: "Barry Allen",
+        latitude: 34.054767, 
+        longitude: -117.16708, 
+        color: [255, 215, 0], // Gold
+        character: "barry",
+        joined: false
+      },
+      { 
+        name: "Pietro Maximoff",
+        latitude: 34.069237, 
+        longitude: -117.186327, 
+        color: [138, 43, 226], // Blue Violet
+        character: "pietro",
+        joined: false
+      }
     ];
-    
-    return directions.map((dir, index) => ({
-      id: `placeholder_${index}`,
-      name: `Area ${dir.name}`,
-      latitude: dir.lat,
-      longitude: dir.lng,
-      color: dir.color
-    }));
   };
 
-  const addPlaceholderLocationsToMap = (placeholders) => {
-    if (!placeholderLayerRef.current) return;
+  const addCharacterLocationsToMap = (characters) => {
+    if (!charactersLayerRef.current) return;
 
-    // Clear existing placeholder markers
-    placeholderLayerRef.current.removeAll();
+    // Clear existing character markers
+    charactersLayerRef.current.removeAll();
 
-    // Add markers for each placeholder location
-    placeholders.forEach((placeholder) => {
+    // Add markers for each character location
+    characters.forEach((character) => {
       const point = {
         type: "point",
-        longitude: placeholder.longitude,
-        latitude: placeholder.latitude
+        longitude: character.longitude,
+        latitude: character.latitude
       };
 
       const markerSymbol = {
         type: "simple-marker",
-        color: placeholder.color,
-        size: "14px",
+        color: character.color,
+        size: "16px",
         outline: {
           color: [255, 255, 255],
           width: 2
@@ -177,16 +181,7 @@ const RendezvousMapPage = () => {
       };
 
       const popupTemplate = {
-        title: placeholder.name,
-        content: `
-          <div style="padding: 10px;">
-            <p><strong>Search Area:</strong> ${placeholder.name}</p>
-            <p>This is a search zone approximately 5km from the main rendezvous point.</p>
-            <p style="margin-top: 10px; color: #007bff;">
-              🎯 Search Area Marker
-            </p>
-          </div>
-        `
+        title: character.name
       };
 
       const pointGraphic = new Graphic({
@@ -194,12 +189,13 @@ const RendezvousMapPage = () => {
         symbol: markerSymbol,
         popupTemplate: popupTemplate,
         attributes: {
-          placeholderId: placeholder.id,
-          name: placeholder.name
+          name: character.name,
+          character: character.character,
+          joined: character.joined
         }
       });
 
-      placeholderLayerRef.current.add(pointGraphic);
+      charactersLayerRef.current.add(pointGraphic);
     });
   };
 
@@ -258,20 +254,20 @@ const RendezvousMapPage = () => {
       map.add(placesLayer);
       placesLayerRef.current = placesLayer;
 
-      // Create graphics layer for placeholder locations
-      const placeholderLayer = new GraphicsLayer();
-      map.add(placeholderLayer);
-      placeholderLayerRef.current = placeholderLayer;
+      // Create graphics layer for character locations
+      const charactersLayer = new GraphicsLayer();
+      map.add(charactersLayer);
+      charactersLayerRef.current = charactersLayer;
 
       // Create graphics layer for candidates
       const candidateLayer = new GraphicsLayer();
       map.add(candidateLayer);
       candidateLayerRef.current = candidateLayer;
 
-      // Generate and add placeholder locations
-      const placeholders = generatePlaceholderLocations(coordinates[1], coordinates[0]);
-      setPlaceholderLocations(placeholders);
-      addPlaceholderLocationsToMap(placeholders);
+      // Generate and add character locations
+      const characters = generateCharacterLocations();
+      setCharacterLocations(characters);
+      addCharacterLocationsToMap(characters);
 
       // Create a point graphic for the rendezvous location
       const point = {
@@ -291,16 +287,7 @@ const RendezvousMapPage = () => {
       };
 
       const popupTemplate = {
-        title: rendezvous.name,
-        content: `
-          <div style="padding: 10px;">
-            <p><strong>Time:</strong> ${new Date(rendezvous.datetime).toLocaleString()}</p>
-            <p><strong>Location:</strong> ${rendezvous.location}</p>
-            <p style="margin-top: 10px; color: #007bff;">
-              📍 Rendezvous point - Share this link with others to join!
-            </p>
-          </div>
-        `
+        title: "Jayvee"
       };
 
       const pointGraphic = new Graphic({
@@ -332,8 +319,54 @@ const RendezvousMapPage = () => {
       await navigator.clipboard.writeText(shareableLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      notification.success('Rendezvous link copied to clipboard!');
+      
+      // Trigger character join notifications with delays
+      setTimeout(() => {
+        notification.info('Barry Allen joined the rendezvous!');
+        // Mark Barry as joined
+        setCharacterLocations(prev => 
+          prev.map(char => 
+            char.character === 'barry' ? { ...char, joined: true } : char
+          )
+        );
+        setJoinedCharacters(prev => [...prev, 'barry']);
+        
+        // Update map markers to reflect joined status
+        if (charactersLayerRef.current) {
+          const barryGraphic = charactersLayerRef.current.graphics.find(
+            g => g.attributes.character === 'barry'
+          );
+          if (barryGraphic) {
+            barryGraphic.attributes.joined = true;
+          }
+        }
+      }, 2000); // 2 seconds after copy
+      
+      setTimeout(() => {
+        notification.info('Pietro Maximoff joined the rendezvous!');
+        // Mark Pietro as joined
+        setCharacterLocations(prev => 
+          prev.map(char => 
+            char.character === 'pietro' ? { ...char, joined: true } : char
+          )
+        );
+        setJoinedCharacters(prev => [...prev, 'pietro']);
+        
+        // Update map markers to reflect joined status
+        if (charactersLayerRef.current) {
+          const pietroGraphic = charactersLayerRef.current.graphics.find(
+            g => g.attributes.character === 'pietro'
+          );
+          if (pietroGraphic) {
+            pietroGraphic.attributes.joined = true;
+          }
+        }
+      }, 5000); // 5 seconds after copy
+      
     } catch (error) {
       console.error('Failed to copy link:', error);
+      notification.error('Failed to copy rendezvous link');
     }
   };
 
@@ -370,13 +403,13 @@ const RendezvousMapPage = () => {
         mainSearchCenter = { latitude: 34.0522, longitude: -118.2437 }; // Default to LA
       }
 
-      // Create array of all search centers (main + placeholders)
+      // Create array of all search centers (main + characters)
       const searchCenters = [
         { ...mainSearchCenter, name: 'Main Location' },
-        ...placeholderLocations.map(placeholder => ({
-          latitude: placeholder.latitude,
-          longitude: placeholder.longitude,
-          name: placeholder.name
+        ...characterLocations.map(character => ({
+          latitude: character.latitude,
+          longitude: character.longitude,
+          name: character.name
         }))
       ];
 
@@ -582,7 +615,7 @@ const RendezvousMapPage = () => {
     // Close the search results dropdown
     setShowSearchResults(false);
 
-    // Get all graphics (search results + rendezvous point + placeholder locations)
+    // Get all graphics (search results + rendezvous point + character locations)
     const allGraphics = [];
     
     // Add search result graphics
@@ -592,9 +625,9 @@ const RendezvousMapPage = () => {
       });
     }
 
-    // Add placeholder location graphics
-    if (placeholderLayerRef.current) {
-      placeholderLayerRef.current.graphics.forEach(graphic => {
+    // Add character location graphics
+    if (charactersLayerRef.current) {
+      charactersLayerRef.current.graphics.forEach(graphic => {
         allGraphics.push(graphic);
       });
     }
@@ -752,7 +785,7 @@ const RendezvousMapPage = () => {
     setSearchResults([]);
     setShowSearchResults(false);
     
-    // Clear place markers from map (but keep placeholder locations visible)
+    // Clear place markers from map (but keep character locations visible)
     if (placesLayerRef.current) {
       placesLayerRef.current.removeAll();
     }
