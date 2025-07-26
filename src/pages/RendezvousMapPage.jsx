@@ -19,6 +19,7 @@ const RendezvousMapPage = () => {
   const placesLayerRef = useRef(null);
   const charactersLayerRef = useRef(null);
   const candidateLayerRef = useRef(null);
+  const firstCandidateSelected = useRef(false);
   const [rendezvous, setRendezvous] = useState(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -970,8 +971,15 @@ useEffect(() => {
         existingCandidate.isSelected = true;
         return newCandidates;
       }
-      // When a new candidate is selected, it's automatically upvoted.
-      return [...newCandidates, { ...place, upvotes: 1, downvotes: 0, isSelected: true, userVote: 'up' }];
+      const newCandidate = { ...place, upvotes: 1, downvotes: 0, isSelected: true, userVote: 'up' };
+      if (!firstCandidateSelected.current) {
+        firstCandidateSelected.current = true;
+        setTimeout(() => {
+          setCandidates(prev => prev.map(c => c.placeId === newCandidate.placeId ? { ...c, upvotes: c.upvotes + 1 } : c));
+          notification.info(`Barry just upvoted ${place.name}.`);
+        }, 2000);
+      }
+      return [...newCandidates, newCandidate];
     });
   };
 
