@@ -208,71 +208,7 @@ useEffect(() => {
     }
   };
 
-  // Generate character locations with specific coordinates
-  const generateCharacterLocations = () => {
-    // Create Barry Allen and Pietro Maximoff at specific coordinates
-    return [
-      { 
-        name: "Barry Allen",
-        latitude: 34.054767, 
-        longitude: -117.16708, 
-        color: [255, 215, 0], // Gold
-        character: "barry",
-        joined: false
-      },
-      { 
-        name: "Pietro Maximoff",
-        latitude: 34.069237, 
-        longitude: -117.186327, 
-        color: [138, 43, 226], // Blue Violet
-        character: "pietro",
-        joined: false
-      }
-    ];
-  };
 
-  const addCharacterLocationsToMap = (characters) => {
-    if (!charactersLayerRef.current) return;
-
-    // Clear existing character markers
-    charactersLayerRef.current.removeAll();
-
-    // Add markers for each character location
-    characters.forEach((character) => {
-      const point = {
-        type: "point",
-        longitude: character.longitude,
-        latitude: character.latitude
-      };
-
-      const markerSymbol = {
-        type: "simple-marker",
-        color: character.color,
-        size: "16px",
-        outline: {
-          color: [255, 255, 255],
-          width: 2
-        }
-      };
-
-      const popupTemplate = {
-        title: character.name
-      };
-
-      const pointGraphic = new Graphic({
-        geometry: point,
-        symbol: markerSymbol,
-        popupTemplate: popupTemplate,
-        attributes: {
-          name: character.name,
-          character: character.character,
-          joined: character.joined
-        }
-      });
-
-      charactersLayerRef.current.add(pointGraphic);
-    });
-  };
 
   const initializeMap = async () => {
     try {
@@ -346,10 +282,7 @@ useEffect(() => {
       map.add(candidateLayer);
       candidateLayerRef.current = candidateLayer;
 
-      // Generate and add character locations
-      const characters = generateCharacterLocations();
-      setCharacterLocations(characters);
-      addCharacterLocationsToMap(characters);
+      // Character locations will be added when copy link is clicked
 
       // Create a point graphic for the rendezvous location
       const point = {
@@ -403,46 +336,111 @@ useEffect(() => {
       setTimeout(() => setCopied(false), 2000);
       notification.success('Rendezvous link copied to clipboard!');
       
-      // Trigger character join notifications with delays
+      // Barry Allen joins after 2 seconds
       setTimeout(() => {
         notification.info('Barry Allen joined the rendezvous!');
-        // Mark Barry as joined
-        setCharacterLocations(prev => 
-          prev.map(char => 
-            char.character === 'barry' ? { ...char, joined: true } : char
-          )
-        );
+        
+        // Add Barry to the map and state
+        const barryCharacter = {
+          name: "Barry Allen",
+          latitude: 34.054767, 
+          longitude: -117.16708, 
+          color: [255, 215, 0], // Gold
+          character: "barry",
+          joined: true
+        };
+        
+        setCharacterLocations(prev => [...prev, barryCharacter]);
         setJoinedCharacters(prev => [...prev, 'barry']);
         
-        // Update map markers to reflect joined status
+        // Add Barry's marker to the map
         if (charactersLayerRef.current) {
-          const barryGraphic = charactersLayerRef.current.graphics.find(
-            g => g.attributes.character === 'barry'
-          );
-          if (barryGraphic) {
-            barryGraphic.attributes.joined = true;
-          }
+          const point = {
+            type: "point",
+            longitude: barryCharacter.longitude,
+            latitude: barryCharacter.latitude
+          };
+
+          const markerSymbol = {
+            type: "simple-marker",
+            color: barryCharacter.color,
+            size: "16px",
+            outline: {
+              color: [255, 255, 255],
+              width: 2
+            }
+          };
+
+          const popupTemplate = {
+            title: barryCharacter.name
+          };
+
+          const pointGraphic = new Graphic({
+            geometry: point,
+            symbol: markerSymbol,
+            popupTemplate: popupTemplate,
+            attributes: {
+              name: barryCharacter.name,
+              character: barryCharacter.character,
+              joined: barryCharacter.joined
+            }
+          });
+
+          charactersLayerRef.current.add(pointGraphic);
         }
       }, 2000); // 2 seconds after copy
       
+      // Pietro Maximoff joins after 5 seconds
       setTimeout(() => {
         notification.info('Pietro Maximoff joined the rendezvous!');
-        // Mark Pietro as joined
-        setCharacterLocations(prev => 
-          prev.map(char => 
-            char.character === 'pietro' ? { ...char, joined: true } : char
-          )
-        );
+        
+        // Add Pietro to the map and state
+        const pietroCharacter = {
+          name: "Pietro Maximoff",
+          latitude: 34.069237, 
+          longitude: -117.186327, 
+          color: [138, 43, 226], // Blue Violet
+          character: "pietro",
+          joined: true
+        };
+        
+        setCharacterLocations(prev => [...prev, pietroCharacter]);
         setJoinedCharacters(prev => [...prev, 'pietro']);
         
-        // Update map markers to reflect joined status
+        // Add Pietro's marker to the map
         if (charactersLayerRef.current) {
-          const pietroGraphic = charactersLayerRef.current.graphics.find(
-            g => g.attributes.character === 'pietro'
-          );
-          if (pietroGraphic) {
-            pietroGraphic.attributes.joined = true;
-          }
+          const point = {
+            type: "point",
+            longitude: pietroCharacter.longitude,
+            latitude: pietroCharacter.latitude
+          };
+
+          const markerSymbol = {
+            type: "simple-marker",
+            color: pietroCharacter.color,
+            size: "16px",
+            outline: {
+              color: [255, 255, 255],
+              width: 2
+            }
+          };
+
+          const popupTemplate = {
+            title: pietroCharacter.name
+          };
+
+          const pointGraphic = new Graphic({
+            geometry: point,
+            symbol: markerSymbol,
+            popupTemplate: popupTemplate,
+            attributes: {
+              name: pietroCharacter.name,
+              character: pietroCharacter.character,
+              joined: pietroCharacter.joined
+            }
+          });
+
+          charactersLayerRef.current.add(pointGraphic);
         }
       }, 5000); // 5 seconds after copy
       
@@ -618,15 +616,15 @@ useEffect(() => {
         mainSearchCenter = { latitude: 34.0522, longitude: -118.2437 };
       }
 
-      // Create search centers for AI search
-      const searchCenters = [
-        { ...mainSearchCenter, name: 'Main Location' },
-        ...placeholderLocations.map(placeholder => ({
-          latitude: placeholder.latitude,
-          longitude: placeholder.longitude,
-          name: placeholder.name
-        }))
-      ];
+             // Create search centers for AI search
+       const searchCenters = [
+         { ...mainSearchCenter, name: 'Main Location' },
+         ...characterLocations.map(character => ({
+           latitude: character.latitude,
+           longitude: character.longitude,
+           name: character.name
+         }))
+       ];
 
       console.log('AI Search query:', query);
       console.log('Searching from centers:', searchCenters);
@@ -804,7 +802,7 @@ useEffect(() => {
           {
             type: "custom",
             creator: function () {
-              const { address, categories, score, searchArea } = place;
+              const { address, categories } = place;
 
               // Create a div container for the custom content.
               const div = document.createElement("div");
@@ -865,70 +863,7 @@ useEffect(() => {
     });
   };
 
-  const showAllSearchResults = () => {
-    if (!mapViewRef.current) {
-      return;
-    }
 
-    // Close the search results dropdown
-    setShowSearchResults(false);
-
-    // Get all graphics (search results + rendezvous point + character locations)
-    const allGraphics = [];
-    
-    // Add search result graphics
-    if (placesLayerRef.current) {
-      placesLayerRef.current.graphics.forEach(graphic => {
-        allGraphics.push(graphic);
-      });
-    }
-
-    // Add character location graphics
-    if (charactersLayerRef.current) {
-      charactersLayerRef.current.graphics.forEach(graphic => {
-        allGraphics.push(graphic);
-      });
-    }
-
-    // Add rendezvous point if we have rendezvous data
-    if (rendezvous) {
-      let rendezvousCoords;
-      if (rendezvous.location.includes('Current Location') && rendezvous.location.includes('(')) {
-        const coordMatch = rendezvous.location.match(/\(([^)]+)\)/);
-        if (coordMatch) {
-          const [lat, lng] = coordMatch[1].split(',').map(coord => parseFloat(coord.trim()));
-          rendezvousCoords = { longitude: lng, latitude: lat };
-        }
-      }
-      
-      if (rendezvousCoords) {
-        const rendezvousPoint = {
-          type: "point",
-          longitude: rendezvousCoords.longitude,
-          latitude: rendezvousCoords.latitude
-        };
-        
-        const rendezvousGraphic = new Graphic({
-          geometry: rendezvousPoint
-        });
-        
-        allGraphics.push(rendezvousGraphic);
-      }
-    }
-
-    // Zoom to show all graphics
-    if (allGraphics.length > 0) {
-      mapViewRef.current.goTo(allGraphics, {
-        duration: 1000, // 1 second animation
-        easing: "ease-in-out"
-      }).then(() => {
-        // Add some padding around the extent
-        const currentExtent = mapViewRef.current.extent;
-        const expandedExtent = currentExtent.expand(1.2); // 20% padding
-        mapViewRef.current.goTo(expandedExtent, { duration: 500 });
-      });
-    }
-  };
 
   const handleSearchInputChange = (e) => {
     const value = e.target.value;
