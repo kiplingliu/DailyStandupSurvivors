@@ -18,8 +18,11 @@ const LoadingScreen = ({ onLoadingComplete }) => {
   return (
     <div className={`loading-screen ${!isVisible ? 'fade-out' : ''}`}>
       <div className="loading-content">
-        <h1>RendezView</h1>
-        <p>Let's Rendezvous!</p>
+        <img 
+          src="/img/Rendezview_logo.svg" 
+          alt="RendezView Logo" 
+          className="loading-logo"
+        />
       </div>
     </div>
   );

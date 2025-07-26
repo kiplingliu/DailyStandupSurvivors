@@ -8,6 +8,7 @@ const HomePage = () => {
     name: '',
     datetime: '',
     location: '',
+    transportation: 'car',
     useCurrentLocation: false
   });
   const [isGettingLocation, setIsGettingLocation] = useState(false);
@@ -211,14 +212,14 @@ const HomePage = () => {
     
     // Reset form
     setShowForm(false);
-    setFormData({ name: '', datetime: '', location: '', useCurrentLocation: false });
+    setFormData({ name: '', datetime: '', location: '', transportation: 'car', useCurrentLocation: false });
     setSearchSuggestions([]);
     setShowSuggestions(false);
   };
 
   const handleCancel = () => {
     setShowForm(false);
-    setFormData({ name: '', datetime: '', location: '', useCurrentLocation: false });
+    setFormData({ name: '', datetime: '', location: '', transportation: 'car', useCurrentLocation: false });
     setSearchSuggestions([]);
     setShowSuggestions(false);
   };
@@ -253,7 +254,11 @@ const HomePage = () => {
   return (
     <div className="home-page">
       <div className="header">
-        <h1 className="app-title">RendezView</h1>
+        <img 
+          src="/img/Rendezview_logo2-01.svg" 
+          alt="RendezView Logo" 
+          className="app-logo"
+        />
         <p className="welcome-message">Welcome, Jayvee!</p>
       </div>
       
@@ -292,6 +297,19 @@ const HomePage = () => {
                 onChange={handleInputChange}
                 required
               />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="transportation">Mode of Transportation</label>
+              <select
+                id="transportation"
+                name="transportation"
+                value={formData.transportation}
+                onChange={handleInputChange}
+                required
+              >
+                <option value="car">Car</option>
+              </select>
             </div>
             
             <div className="form-group">
@@ -334,7 +352,15 @@ const HomePage = () => {
                   disabled={isGettingLocation}
                   title="Use current location"
                 >
-                  {isGettingLocation ? '⏳' : '📍'}
+                  {isGettingLocation ? (
+                    <span className="loading-emoji">⏳</span>
+                  ) : (
+                    <img 
+                      src="/img/rendezview_pin-01.svg" 
+                      alt="Location pin" 
+                      className="location-pin-icon"
+                    />
+                  )}
                 </button>
               </div>
             </div>
