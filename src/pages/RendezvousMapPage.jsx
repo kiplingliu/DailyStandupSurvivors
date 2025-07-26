@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import '../styles/RendezvousMapPage.css';
+import Map from "@arcgis/core/Map";
+import MapView from "@arcgis/core/views/MapView";
+import Graphic from "@arcgis/core/Graphic";
+import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
+import * as locator from "@arcgis/core/rest/locator";
 
 const RendezvousMapPage = () => {
   const { rendezvousData } = useParams();
@@ -39,10 +44,6 @@ const RendezvousMapPage = () => {
 
   const geocodeAddress = async (address) => {
     try {
-      const locator = await new Promise((resolve) => {
-        window.require(['esri/rest/locator'], resolve);
-      });
-
       const serviceUrl = "https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer";
       
       const params = {
@@ -68,15 +69,6 @@ const RendezvousMapPage = () => {
 
   const initializeMap = async () => {
     try {
-      // Load ArcGIS modules
-      const [Map, MapView, Graphic, GraphicsLayer] = await new Promise((resolve) => {
-        window.require([
-          'esri/Map',
-          'esri/views/MapView',
-          'esri/Graphic',
-          'esri/layers/GraphicsLayer'
-        ], (...modules) => resolve(modules));
-      });
 
       let coordinates;
       
@@ -100,7 +92,8 @@ const RendezvousMapPage = () => {
 
       // Create the map
       const map = new Map({
-        basemap: "streets-vector" // Street view basemap
+        basemap: "arcgis/navigation", // Street view basemap
+        apiKey: ARCGIS_API_KEY
       });
 
       // Create the view
