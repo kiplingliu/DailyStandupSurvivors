@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import '../styles/RendezvousMapPage.css';
 import HamburgerMenu from './HamburgerMenu';
@@ -16,6 +16,7 @@ const RendezvousMapPage = () => {
   const mapViewRef = useRef(null);
   const placesLayerRef = useRef(null);
   const placeholderLayerRef = useRef(null);
+  const candidateLayerRef = useRef(null);
   const [rendezvous, setRendezvous] = useState(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -23,6 +24,7 @@ const RendezvousMapPage = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [placeholderLocations, setPlaceholderLocations] = useState([]);
+  const [candidates, setCandidates] = useState([]);
 
   // Hardcoded nice-looking shareable link
   const shareableLink = "https://rendezview.app/join/748372590";
@@ -63,6 +65,38 @@ const RendezvousMapPage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!candidateLayerRef.current) return;
+
+    candidateLayerRef.current.removeAll();
+
+    candidates.forEach((candidate) => {
+      const point = {
+        type: "point",
+        longitude: candidate.location.longitude,
+        latitude: candidate.location.latitude,
+      };
+
+      const markerSymbol = {
+        type: "simple-marker",
+        color: [255, 255, 0], // Yellow for candidates
+        size: "14px",
+        outline: {
+          color: [0, 0, 0],
+          width: 2,
+        },
+      };
+
+      const pointGraphic = new Graphic({
+        geometry: point,
+        symbol: markerSymbol,
+        attributes: candidate,
+      });
+
+      candidateLayerRef.current.add(pointGraphic);
+    });
+  }, [candidates]);
+
   const geocodeAddress = async (address) => {
     try {
       const serviceUrl = "https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer";
@@ -90,7 +124,6 @@ const RendezvousMapPage = () => {
 
   // Generate 5 placeholder locations around the main location (approximately 5km radius)
   const generatePlaceholderLocations = (centerLat, centerLng) => {
-    const placeholders = [];
     const radius = 0.045; // Approximately 5km in degrees
     
     // Create 5 locations in different directions
@@ -217,6 +250,11 @@ const RendezvousMapPage = () => {
       const placeholderLayer = new GraphicsLayer();
       map.add(placeholderLayer);
       placeholderLayerRef.current = placeholderLayer;
+
+      // Create graphics layer for candidates
+      const candidateLayer = new GraphicsLayer();
+      map.add(candidateLayer);
+      candidateLayerRef.current = candidateLayer;
 
       // Generate and add placeholder locations
       const placeholders = generatePlaceholderLocations(coordinates[1], coordinates[0]);
@@ -426,7 +464,7 @@ const RendezvousMapPage = () => {
     placesLayerRef.current.removeAll();
 
     // Add markers for each place
-    places.forEach((place, index) => {
+    places.forEach((place) => {
       const point = {
         type: "point",
         longitude: place.location.longitude,
@@ -444,21 +482,66 @@ const RendezvousMapPage = () => {
       };
 
       const popupTemplate = {
-        title: place.name,
-        content: `
-          <div style="padding: 10px;">
-            <p><strong>Address:</strong> ${place.address}</p>
-            ${place.categories && place.categories.length > 0 ? 
-              `<p><strong>Type:</strong> ${place.categories.map(cat => cat.label).join(', ')}</p>` : ''}
-            ${place.score ? 
-              `<p><strong>Relevance:</strong> ${place.score}%</p>` : ''}
-            ${place.searchArea ? 
-              `<p><strong>Found from:</strong> ${place.searchArea}</p>` : ''}
-            <p style="margin-top: 10px; color: #007bff;">
-              📍 Search result
-            </p>
-          </div>
-        `
+        title: "{name}",
+        content: [
+          {
+            type: "custom",
+            creator: function () {
+              const { address, categories, score, searchArea } = place;
+
+              // Create a div container for the custom content.
+              const div = document.createElement("div");
+              div.style.padding = "10px";
+
+              // Add static content
+              const addressElement = document.createElement("p");
+              addressElement.innerHTML = `<strong>Address:</strong> ${address}`;
+              div.appendChild(addressElement);
+
+              if (categories && categories.length > 0) {
+                const typeElement = document.createElement("p");
+                typeElement.innerHTML = `<strong>Type:</strong> ${categories.map(cat => cat.label).join(', ')}`;
+                div.appendChild(typeElement);
+              }
+
+              if (score) {
+                const relevanceElement = document.createElement("p");
+                relevanceElement.innerHTML = `<strong>Relevance:</strong> ${score}%`;
+                div.appendChild(relevanceElement);
+              }
+
+              if (searchArea) {
+                const foundFromElement = document.createElement("p");
+                foundFromElement.innerHTML = `<strong>Found from:</strong> ${searchArea}`;
+                div.appendChild(foundFromElement);
+              }
+
+              const searchResultElement = document.createElement("p");
+              searchResultElement.style.marginTop = "10px";
+              searchResultElement.style.color = "#007bff";
+              searchResultElement.innerHTML = `📍 Search result`;
+              div.appendChild(searchResultElement);
+
+              // Create the button element.
+              const button = document.createElement("button");
+              button.innerText = "Select as candidate";
+              button.classList.add("esri-button"); // Use ArcGIS styles
+              button.style.marginTop = "10px";
+
+
+              // Add the click event listener to the button.
+              button.addEventListener("click", () => {
+                addCandidate(place);
+              });
+
+              // Append the button to the div container.
+              div.appendChild(button);
+
+              // Return the div container.
+              return div;
+            },
+          },
+        ],
       };
 
       const pointGraphic = new Graphic({
@@ -562,6 +645,15 @@ const RendezvousMapPage = () => {
     }
   };
 
+  const addCandidate = (place) => {
+    setCandidates((prevCandidates) => {
+      if (prevCandidates.find((candidate) => candidate.placeId === place.placeId)) {
+        return prevCandidates;
+      }
+      return [...prevCandidates, place];
+    });
+  };
+
   const selectSearchResult = (result) => {
     setSearchValue(result.name);
     setShowSearchResults(false);
@@ -616,6 +708,11 @@ const RendezvousMapPage = () => {
     }
   };
 
+  const displayedResults = useMemo(() => {
+    const candidateIds = new Set(candidates.map((c) => c.placeId));
+    return searchResults.filter((result) => !candidateIds.has(result.placeId));
+  }, [searchResults, candidates]);
+
   if (!rendezvous) {
     return (
       <div className="loading-container">
@@ -653,17 +750,17 @@ const RendezvousMapPage = () => {
           )}
         </div>
         
-        {showSearchResults && searchResults.length > 0 && (
+        {showSearchResults && (
           <div className="search-results">
             <div className="search-results-header">
               <span className="search-results-count">
-                {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
+                {displayedResults.length} result{displayedResults.length !== 1 ? 's' : ''} found
               </span>
               <button className="show-all-btn" onClick={showAllSearchResults}>
                 📍 Show All on Map
               </button>
             </div>
-            {searchResults.map((result, index) => (
+            {displayedResults.map((result, index) => (
               <div
                 key={index}
                 className="search-result-item"
