@@ -406,31 +406,47 @@ useEffect(() => {
         setCharacterLocations(prev => [...prev, pietroCharacter]);
         setJoinedCharacters(prev => [...prev, 'pietro']);
         
-        // Add Pietro's marker to the map
+        // Add Pietro's privacy buffer to the map
         if (charactersLayerRef.current) {
-          const point = {
-            type: "point",
-            longitude: pietroCharacter.longitude,
-            latitude: pietroCharacter.latitude
+          // Create a circular buffer around Pietro's location (approx 500m radius)
+          const bufferRadius = 0.0045; // Roughly 500 meters in degrees
+          const centerLat = pietroCharacter.latitude;
+          const centerLng = pietroCharacter.longitude;
+          const numPoints = 64; // More points for smoother circle
+          
+          const circleRings = [];
+          for (let i = 0; i <= numPoints; i++) {
+            const angle = (i / numPoints) * 2 * Math.PI;
+            // Adjust for longitude distortion at this latitude
+            const latRadius = bufferRadius;
+            const lngRadius = bufferRadius / Math.cos(centerLat * Math.PI / 180);
+            
+            const lat = centerLat + (latRadius * Math.cos(angle));
+            const lng = centerLng + (lngRadius * Math.sin(angle));
+            circleRings.push([lng, lat]);
+          }
+
+          const bufferPolygon = {
+            type: "polygon",
+            rings: [circleRings]
           };
 
-          const markerSymbol = {
-            type: "simple-marker",
-            color: pietroCharacter.color,
-            size: "16px",
+          const bufferSymbol = {
+            type: "simple-fill",
+            color: [...pietroCharacter.color, 0.3], // Same color but 30% opacity
             outline: {
-              color: [255, 255, 255],
+              color: pietroCharacter.color,
               width: 2
             }
           };
 
           const popupTemplate = {
-            title: pietroCharacter.name
+            title: `${pietroCharacter.name} (Privacy Mode)`
           };
 
-          const pointGraphic = new Graphic({
-            geometry: point,
-            symbol: markerSymbol,
+          const bufferGraphic = new Graphic({
+            geometry: bufferPolygon,
+            symbol: bufferSymbol,
             popupTemplate: popupTemplate,
             attributes: {
               name: pietroCharacter.name,
@@ -439,7 +455,7 @@ useEffect(() => {
             }
           });
 
-          charactersLayerRef.current.add(pointGraphic);
+          charactersLayerRef.current.add(bufferGraphic);
         }
       }, 5000); // 5 seconds after copy
       
