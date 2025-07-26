@@ -1,244 +1,280 @@
+/* Modern color palette */
+:root {
+  --primary-navy: #1a237e;
+  --secondary-navy: #3949ab;
+  --light-lavender: #f3f2ff;
+  --medium-lavender: #e8e6ff;
+  --accent-coral: #7c4dff;
+  --white: #ffffff;
+  --text-dark: #2c2c54;
+  --text-medium: #6c7293;
+  --text-light: #9ca3af;
+  --shadow-light: rgba(26, 35, 126, 0.08);
+  --shadow-medium: rgba(26, 35, 126, 0.15);
+  --gradient-primary: linear-gradient(135deg, #1a237e 0%, #3949ab 100%);
+  --gradient-card: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+}
+
 .home-page {
   min-height: 100vh;
-  background: #ffffff;
-  color: #333333;
-  width: 100vw;
-  display: flex;
-  flex-direction: column;
+  background: linear-gradient(180deg, var(--light-lavender) 0%, var(--white) 20%);
+  color: var(--text-dark);
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Roboto', sans-serif;
+  padding: 24px 20px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .header {
-  background: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
-  padding: 20px 0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  width: 100%;
-}
-
-.header-content {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.app-brand {
-  text-align: right;
+  text-align: center;
+  margin-bottom: 20px;
+  padding: 32px 24px;
 }
 
 .app-title {
-  font-size: 24px;
-  font-weight: 300;
-  margin: 0 0 5px 0;
-  color: #007bff;
-  letter-spacing: 1px;
+  font-size: 36px;
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
 }
 
-.welcome-title {
-  font-size: 16px;
-  font-weight: 300;
-  color: #666666;
+.welcome-message {
+  font-size: 18px;
+  color: var(--text-medium);
   margin: 0;
+  font-weight: 500;
+  letter-spacing: 0.2px;
 }
 
-.main-content {
-  flex: 1;
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 20px;
-  box-sizing: border-box;
-}
-
-.meetups-section {
-  background: #ffffff;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.meetups-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 40px;
-  flex-wrap: wrap;
-  gap: 20px;
-  width: 100%;
-}
-
-.section-title {
-  font-size: 28px;
-  font-weight: 300;
-  color: #333333;
-  margin: 0;
-  letter-spacing: 1px;
-}
-
-.create-meetup-btn {
-  background: #007bff;
-  color: white;
+.create-rendezvous-btn {
+  background: var(--gradient-primary);
+  color: var(--white);
   border: none;
-  padding: 12px 24px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 400;
+  padding: 32px 60px;
+  border-radius: 20px;
+  font-size: 20px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 40px;
+  width: 100%;
+  max-width: 400px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 4px 20px var(--shadow-medium);
+  letter-spacing: 0.3px;
+  position: relative;
+  overflow: hidden;
 }
 
-.create-meetup-btn:hover {
-  background: #0056b3;
-  transform: translateY(-1px);
+.create-rendezvous-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
 }
 
-.meetups-list {
+.create-rendezvous-btn:hover::before {
+  left: 100%;
+}
+
+.create-rendezvous-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px var(--shadow-medium);
+}
+
+.create-rendezvous-btn:active {
+  transform: translateY(0);
+}
+
+.scheduled-heading {
+  font-size: 28px;
+  color: var(--text-dark);
+  margin: 0 0 32px 0;
+  font-weight: 700;
+  text-align: center;
+  position: relative;
+  letter-spacing: -0.3px;
+}
+
+.scheduled-heading::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: var(--gradient-primary);
+  border-radius: 2px;
+}
+
+.rendezvous-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   width: 100%;
 }
 
-.meetup-card {
-  background: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.2s ease;
+.rendezvous-card {
+  background: var(--gradient-card);
+  border: 1px solid var(--medium-lavender);
+  border-radius: 16px;
+  padding: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
   box-sizing: border-box;
+  box-shadow: 0 4px 20px var(--shadow-light);
+  position: relative;
+  overflow: hidden;
 }
 
-.meetup-card:hover {
-  border-color: #007bff;
-  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+.rendezvous-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px var(--shadow-medium);
+  border-color: var(--accent-coral);
 }
 
-.meetup-info {
-  flex: 1;
-}
-
-.meetup-name {
+.rendezvous-name {
   font-size: 18px;
-  font-weight: 400;
-  color: #333333;
-  margin: 0 0 8px 0;
+  color: var(--text-dark);
+  margin: 0 0 12px 0;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  line-height: 1.3;
 }
 
-.meetup-time {
-  font-size: 14px;
-  color: #007bff;
-  font-weight: 400;
-  margin: 0 0 4px 0;
-}
-
-.meetup-location {
-  font-size: 14px;
-  color: #666666;
-  margin: 0;
-}
-
-.meetup-actions {
-  margin-left: 20px;
-}
-
-.action-btn {
-  background: #28a745;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 400;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.action-btn:hover {
-  background: #218838;
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
+.rendezvous-date {
+  font-size: 13px;
+  color: var(--secondary-navy);
+  margin: 0 0 6px 0;
+  font-weight: 600;
+  display: inline-flex;
   align-items: center;
-  z-index: 1000;
+  background: var(--light-lavender);
+  padding: 4px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.2px;
 }
 
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  padding: 0;
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  animation: modalSlideIn 0.3s ease-out;
+.rendezvous-time {
+  font-size: 13px;
+  color: var(--secondary-navy);
+  margin: 0 0 10px 6px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  background: var(--medium-lavender);
+  padding: 4px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.2px;
 }
 
-@keyframes modalSlideIn {
+.rendezvous-location {
+  font-size: 14px;
+  color: var(--text-medium);
+  margin: 0 0 8px 0;
+  font-weight: 500;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rendezvous-location::before {
+  content: '📍';
+  font-size: 16px;
+}
+
+.rendezvous-people {
+  font-size: 14px;
+  color: var(--text-medium);
+  margin: 0 0 12px 0;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rendezvous-people::before {
+  content: '👥';
+  font-size: 16px;
+}
+
+.view-btn {
+  background: var(--white);
+  color: var(--primary-navy);
+  border: 2px solid var(--primary-navy);
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  letter-spacing: 0.2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.view-btn:hover {
+  background: var(--primary-navy);
+  color: var(--white);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px var(--shadow-medium);
+}
+
+.view-btn:active {
+  transform: translateY(0);
+}
+
+/* Form Styles */
+.rendezvous-form-container {
+  background: var(--white);
+  border: 1px solid var(--medium-lavender);
+  border-radius: 20px;
+  padding: 32px;
+  margin-bottom: 40px;
+  box-shadow: 0 8px 32px var(--shadow-light);
+  animation: expandForm 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: visible;
+}
+
+@keyframes expandForm {
   from {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateY(-20px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24px 24px 16px;
-  border-bottom: 1px solid #e0e0e0;
+.rendezvous-form {
+  width: 100%;
 }
 
-.modal-header h3 {
-  font-size: 20px;
-  font-weight: 400;
-  color: #333333;
-  margin: 0;
-}
-
-.close-btn {
-  background: none;
-  border: none;
+.form-title {
   font-size: 24px;
-  color: #666666;
-  cursor: pointer;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: #f8f9fa;
-  color: #333333;
-}
-
-.meetup-form {
-  padding: 24px;
+  color: var(--text-dark);
+  margin: 0 0 24px 0;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: -0.2px;
 }
 
 .form-group {
@@ -248,169 +284,369 @@
 .form-group label {
   display: block;
   font-size: 14px;
-  font-weight: 400;
-  color: #333333;
+  font-weight: 600;
+  color: var(--text-dark);
   margin-bottom: 8px;
+  letter-spacing: 0.2px;
 }
 
 .form-group input {
   width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
+  padding: 14px 16px;
+  border: 2px solid var(--medium-lavender);
+  border-radius: 12px;
   font-size: 16px;
-  transition: all 0.2s ease;
-  background: white;
+  font-family: inherit;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--white);
   box-sizing: border-box;
+  color: var(--text-dark);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  border-color: var(--primary-navy);
+  box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.1);
+  transform: translateY(-1px);
+}
+
+.form-group input::placeholder {
+  color: var(--text-light);
 }
 
 .location-input-group {
   display: flex;
-  gap: 10px;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.location-search-container {
+  flex: 1;
+  position: relative;
 }
 
 .location-input-group input {
   flex: 1;
+  width: 100%;
+}
+
+.search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--white);
+  border: 2px solid var(--medium-lavender);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  max-height: 240px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 9999;
+  box-shadow: 0 8px 24px var(--shadow-medium);
+  scrollbar-width: thin;
+  scrollbar-color: var(--medium-lavender) var(--white);
+}
+
+.search-suggestions::-webkit-scrollbar {
+  width: 6px;
+}
+
+.search-suggestions::-webkit-scrollbar-track {
+  background: var(--white);
+  border-radius: 0 0 12px 0;
+}
+
+.search-suggestions::-webkit-scrollbar-thumb {
+  background: var(--medium-lavender);
+  border-radius: 3px;
+}
+
+.search-suggestions::-webkit-scrollbar-thumb:hover {
+  background: var(--secondary-navy);
+}
+
+.suggestion-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border-bottom: 1px solid var(--medium-lavender);
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background: var(--light-lavender);
+}
+
+.suggestion-address {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dark);
+  margin-bottom: 2px;
+}
+
+.search-loading {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  z-index: 10;
+}
+
+.search-spinner {
+  font-size: 16px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .location-btn {
-  background: #007bff;
-  color: white;
-  border: none;
-  padding: 12px 16px;
-  border-radius: 6px;
-  font-size: 16px;
+  background: var(--light-lavender);
+  border: 2px solid var(--medium-lavender);
+  color: var(--text-dark);
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 18px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-width: 50px;
+  height: 50px;
 }
 
 .location-btn:hover {
-  background: #0056b3;
+  background: var(--primary-navy);
+  border-color: var(--primary-navy);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px var(--shadow-medium);
+}
+
+.location-btn.loading {
+  background: var(--medium-lavender);
+  border-color: var(--medium-lavender);
+  cursor: not-allowed;
+  animation: pulse 1.5s infinite;
+}
+
+.location-btn.loading:hover {
+  background: var(--medium-lavender);
+  border-color: var(--medium-lavender);
+  transform: none;
+  box-shadow: none;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 .form-actions {
   display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.cancel-btn,
+.submit-btn {
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  letter-spacing: 0.2px;
+  min-width: 120px;
 }
 
 .cancel-btn {
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 400;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  background: var(--white);
+  color: var(--text-medium);
+  border: 2px solid var(--medium-lavender);
 }
 
 .cancel-btn:hover {
-  background: #5a6268;
+  background: var(--medium-lavender);
+  color: var(--text-dark);
+  transform: translateY(-1px);
 }
 
 .submit-btn {
-  background: #007bff;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 400;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  background: var(--gradient-primary);
+  color: var(--white);
+  box-shadow: 0 4px 16px var(--shadow-medium);
 }
 
 .submit-btn:hover {
-  background: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px var(--shadow-medium);
 }
 
-/* Mobile responsive */
+.submit-btn:active,
+.cancel-btn:active {
+  transform: translateY(0);
+}
+
+/* Tablet styles */
 @media (max-width: 768px) {
+  .home-page {
+    padding: 20px 16px;
+  }
+  
   .header {
-    padding: 16px 0;
-  }
-  
-  .header-content {
-    justify-content: center;
-    padding: 0 16px;
-  }
-  
-  .app-brand {
-    text-align: center;
+    padding: 28px 20px;
+    margin-bottom: 18px;
   }
   
   .app-title {
-    font-size: 20px;
+    font-size: 32px;
   }
   
-  .welcome-title {
+  .welcome-message {
+    font-size: 16px;
+  }
+  
+  .create-rendezvous-btn {
+    max-width: none;
+    width: 100%;
+    padding: 28px 44px;
+    font-size: 18px;
+  }
+  
+  .scheduled-heading {
+    font-size: 24px;
+    margin-bottom: 28px;
+  }
+  
+  .rendezvous-card {
+    padding: 20px;
+  }
+  
+  .rendezvous-name {
+    font-size: 20px;
+  }
+}
+
+/* Mobile styles - iPhone 13 Pro (390x844) */
+@media (max-width: 390px) {
+  .home-page {
+    padding: 16px 12px;
+    background: linear-gradient(180deg, var(--light-lavender) 0%, var(--white) 15%);
+  }
+  
+  .header {
+    padding: 24px 16px;
+    margin-bottom: 16px;
+  }
+  
+  .app-title {
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+  
+  .welcome-message {
+    font-size: 15px;
+  }
+  
+  .create-rendezvous-btn {
+    padding: 26px 44px;
+    font-size: 17px;
+    margin-bottom: 32px;
+    border-radius: 16px;
+  }
+  
+  .scheduled-heading {
+    font-size: 22px;
+    margin-bottom: 24px;
+  }
+  
+  .rendezvous-list {
+    gap: 20px;
+  }
+  
+  .rendezvous-card {
+    padding: 18px;
+    border-radius: 14px;
+  }
+  
+  .rendezvous-name {
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+  
+  .rendezvous-date,
+  .rendezvous-time {
+    font-size: 13px;
+    padding: 5px 10px;
+  }
+  
+  .rendezvous-location,
+  .rendezvous-people {
     font-size: 14px;
   }
   
-  .main-content {
-    padding: 24px 16px;
+  .view-btn {
+    padding: 14px 20px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+
+  /* Mobile form adjustments */
+  .rendezvous-form-container {
+    padding: 24px 20px;
+    margin-bottom: 32px;
+    border-radius: 16px;
   }
   
-  .meetups-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
+  .form-title {
+    font-size: 20px;
+    margin-bottom: 20px;
   }
   
-  .section-title {
-    font-size: 24px;
-    text-align: center;
+  .form-group {
+    margin-bottom: 16px;
   }
   
-  .create-meetup-btn {
-    width: 100%;
+  .form-group input {
+    padding: 12px 14px;
+    font-size: 16px;
+    border-radius: 10px;
   }
   
-  .meetup-card {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-    padding: 20px;
-  }
-  
-  .meetup-actions {
-    margin-left: 0;
-    align-self: stretch;
-  }
-  
-  .action-btn {
-    width: 100%;
-    padding: 12px;
-  }
-  
-  .modal-content {
-    width: 95%;
-    margin: 20px;
-  }
-  
-  .modal-header,
-  .meetup-form {
-    padding: 20px;
+  .location-btn {
+    padding: 12px 14px;
+    border-radius: 10px;
+    min-width: 46px;
+    height: 46px;
   }
   
   .form-actions {
     flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
   }
   
   .cancel-btn,
   .submit-btn {
     width: 100%;
+    padding: 16px 24px;
+    border-radius: 10px;
   }
 }

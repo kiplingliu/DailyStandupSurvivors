@@ -4,12 +4,12 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: #ffffff;
+  background: #F5F4FF;
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  transition: opacity 0.3s ease-in-out;
+  transition: opacity 0.5s ease-in-out;
 }
 
 .loading-screen.fade-out {
@@ -18,119 +18,15 @@
 
 .loading-content {
   text-align: center;
-  animation: fadeIn 0.8s ease-out;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.logo-container {
-  margin-bottom: 40px;
-}
-
-.logo {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: #007bff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 0 auto;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-}
-
-.logo-text {
-  font-size: 24px;
-  font-weight: bold;
-  color: #ffffff;
-}
-
-.title {
+.loading-content h1 {
   font-size: 32px;
-  font-weight: 300;
-  color: #333333;
-  margin: 0 0 10px 0;
-  letter-spacing: 1px;
+  color: #303D66;
+  margin-bottom: 16px;
 }
 
-.subtitle {
-  font-size: 16px;
-  color: #666666;
-  margin: 0 0 50px 0;
-  font-weight: 300;
-}
-
-.loading-dots {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #007bff;
-  animation: bounce 1.4s infinite ease-in-out both;
-}
-
-.dot:nth-child(1) {
-  animation-delay: -0.32s;
-}
-
-.dot:nth-child(2) {
-  animation-delay: -0.16s;
-}
-
-.dot:nth-child(3) {
-  animation-delay: 0s;
-}
-
-@keyframes bounce {
-  0%, 80%, 100% {
-    transform: scale(0.8);
-    opacity: 0.5;
-  }
-  40% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* Mobile responsive */
-@media (max-width: 768px) {
-  .logo {
-    width: 60px;
-    height: 60px;
-  }
-  
-  .logo-text {
-    font-size: 20px;
-  }
-  
-  .title {
-    font-size: 24px;
-  }
-  
-  .subtitle {
-    font-size: 14px;
-  }
+.loading-content p {
+  font-size: 18px;
+  color: #5C667B;
 }
