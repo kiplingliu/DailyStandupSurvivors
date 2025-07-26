@@ -4,7 +4,7 @@
   --secondary-navy: #3949ab;
   --light-lavender: #f3f2ff;
   --medium-lavender: #e8e6ff;
-  --accent-coral: #ff6b6b;
+  --accent-coral: #7c4dff;
   --white: #ffffff;
   --text-dark: #2c2c54;
   --text-medium: #6c7293;
@@ -29,12 +29,8 @@
 
 .header {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 20px;
   padding: 32px 24px;
-  background: var(--white);
-  border-radius: 24px;
-  box-shadow: 0 8px 32px var(--shadow-light);
-  border: 1px solid var(--medium-lavender);
 }
 
 .app-title {
@@ -61,15 +57,15 @@
   background: var(--gradient-primary);
   color: var(--white);
   border: none;
-  padding: 16px 32px;
-  border-radius: 16px;
-  font-size: 16px;
+  padding: 32px 60px;
+  border-radius: 20px;
+  font-size: 20px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   margin-bottom: 40px;
   width: 100%;
-  max-width: 280px;
+  max-width: 400px;
   display: block;
   margin-left: auto;
   margin-right: auto;
@@ -128,15 +124,15 @@
 .rendezvous-list {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 14px;
   width: 100%;
 }
 
 .rendezvous-card {
   background: var(--gradient-card);
   border: 1px solid var(--medium-lavender);
-  border-radius: 20px;
-  padding: 24px;
+  border-radius: 16px;
+  padding: 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
   box-sizing: border-box;
@@ -152,51 +148,49 @@
 }
 
 .rendezvous-name {
-  font-size: 22px;
+  font-size: 18px;
   color: var(--text-dark);
-  margin: 0 0 16px 0;
+  margin: 0 0 12px 0;
   font-weight: 700;
   letter-spacing: -0.2px;
   line-height: 1.3;
 }
 
 .rendezvous-date {
-  font-size: 16px;
+  font-size: 13px;
   color: var(--secondary-navy);
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   background: var(--light-lavender);
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 6px;
   letter-spacing: 0.2px;
 }
 
 .rendezvous-time {
-  font-size: 16px;
+  font-size: 13px;
   color: var(--secondary-navy);
-  margin: 0 0 12px 8px;
+  margin: 0 0 10px 6px;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   background: var(--medium-lavender);
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 6px;
   letter-spacing: 0.2px;
 }
 
 .rendezvous-location {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--text-medium);
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
   font-weight: 500;
   line-height: 1.4;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .rendezvous-location::before {
@@ -205,13 +199,13 @@
 }
 
 .rendezvous-people {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--text-medium);
-  margin: 0 0 20px 0;
+  margin: 0 0 12px 0;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .rendezvous-people::before {
@@ -518,7 +512,7 @@
   
   .header {
     padding: 28px 20px;
-    margin-bottom: 32px;
+    margin-bottom: 18px;
   }
   
   .app-title {
@@ -532,7 +526,8 @@
   .create-rendezvous-btn {
     max-width: none;
     width: 100%;
-    padding: 18px 32px;
+    padding: 28px 44px;
+    font-size: 18px;
   }
   
   .scheduled-heading {
@@ -558,8 +553,7 @@
   
   .header {
     padding: 24px 16px;
-    margin-bottom: 28px;
-    border-radius: 20px;
+    margin-bottom: 16px;
   }
   
   .app-title {
@@ -572,10 +566,10 @@
   }
   
   .create-rendezvous-btn {
-    padding: 16px 28px;
-    font-size: 15px;
+    padding: 26px 44px;
+    font-size: 17px;
     margin-bottom: 32px;
-    border-radius: 14px;
+    border-radius: 16px;
   }
   
   .scheduled-heading {
@@ -589,7 +583,7 @@
   
   .rendezvous-card {
     padding: 18px;
-    border-radius: 16px;
+    border-radius: 14px;
   }
   
   .rendezvous-name {
