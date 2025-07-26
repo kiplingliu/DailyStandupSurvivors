@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../styles/HomePage.css';
 
 const HomePage = () => {
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -201,8 +203,14 @@ const HomePage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('New rendezvous:', formData);
-    // Here you would typically save to a database
-    alert('Rendezvous created successfully!');
+    
+    // Encode the rendezvous data to pass via URL
+    const rendezvousData = encodeURIComponent(JSON.stringify(formData));
+    
+    // Navigate to the map page
+    navigate(`/rendezvous/${rendezvousData}`);
+    
+    // Reset form
     setShowForm(false);
     setFormData({ name: '', datetime: '', location: '', useCurrentLocation: false });
     setSearchSuggestions([]);
@@ -260,10 +268,10 @@ const HomePage = () => {
       ) : (
         <div className="rendezvous-form-container">
           <form onSubmit={handleSubmit} className="rendezvous-form">
-            <h3 className="form-title">Create Rendezvous</h3>
+            <h3 className="form-title">Create New Rendezvous</h3>
             
             <div className="form-group">
-              <label htmlFor="name">Name</label>
+              <label htmlFor="name">Rendezvous Name</label>
               <input
                 type="text"
                 id="name"
@@ -355,7 +363,7 @@ const HomePage = () => {
           <h3 className="rendezvous-name">Coffee & Catch Up ☕️</h3>
           <p className="rendezvous-date">08/01/2025</p>
           <p className="rendezvous-time">10:00 AM</p>
-          <p className="rendezvous-location">110 N Palm Canyon Dr, Palm Springs, CA 92262</p>
+          <p className="rendezvous-location">Starbucks, 123 Main St, Downtown</p>
           <p className="rendezvous-people">People: Kevin, Deanne</p>
           <button className="view-btn">View</button>
         </div>
@@ -373,7 +381,7 @@ const HomePage = () => {
           <h3 className="rendezvous-name">Sunset Date 🌅💕</h3>
           <p className="rendezvous-date">08/05/2025</p>
           <p className="rendezvous-time">6:00 PM</p>
-          <p className="rendezvous-location">2108 W Oceanfront, Newport Beach, CA 92663</p>
+          <p className="rendezvous-location">Riverside Park, 456 River Ave</p>
           <p className="rendezvous-people">People: Kipling</p>
           <button className="view-btn">View</button>
         </div>

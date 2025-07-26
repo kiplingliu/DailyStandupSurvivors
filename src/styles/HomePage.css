@@ -34,7 +34,7 @@
   background: var(--white);
   border-radius: 24px;
   box-shadow: 0 8px 32px var(--shadow-light);
-  border: 1px solid var(--soft-blue-gray);
+  border: 1px solid var(--medium-lavender);
 }
 
 .app-title {
@@ -134,7 +134,7 @@
 
 .rendezvous-card {
   background: var(--gradient-card);
-  border: 1px solid var(--soft-blue-gray);
+  border: 1px solid var(--medium-lavender);
   border-radius: 20px;
   padding: 24px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -143,16 +143,6 @@
   box-shadow: 0 4px 20px var(--shadow-light);
   position: relative;
   overflow: hidden;
-}
-
-.rendezvous-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: var(--gradient-primary);
 }
 
 .rendezvous-card:hover {
@@ -191,7 +181,7 @@
   font-weight: 600;
   display: inline-flex;
   align-items: center;
-  background: var(--soft-blue-gray);
+  background: var(--medium-lavender);
   padding: 6px 12px;
   border-radius: 8px;
   font-size: 14px;
@@ -268,10 +258,6 @@
   position: relative;
   overflow: visible;
 }
-
-
-
-
 
 @keyframes expandForm {
   from {
@@ -408,12 +394,6 @@
   margin-bottom: 2px;
 }
 
-.suggestion-type {
-  font-size: 12px;
-  color: var(--text-medium);
-  text-transform: capitalize;
-}
-
 .search-loading {
   position: absolute;
   top: 50%;
@@ -433,29 +413,6 @@
   }
   to {
     transform: rotate(360deg);
-  }
-}
-
-/* Mobile adjustments for search */
-@media (max-width: 390px) {
-  .location-input-group {
-    align-items: flex-start;
-  }
-  
-  .search-suggestions {
-    border-radius: 0 0 10px 10px;
-  }
-  
-  .suggestion-item {
-    padding: 10px 14px;
-  }
-  
-  .suggestion-address {
-    font-size: 13px;
-  }
-  
-  .suggestion-type {
-    font-size: 11px;
   }
 }
 
