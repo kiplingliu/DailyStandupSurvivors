@@ -14,8 +14,10 @@ const RendezvousMapPage = () => {
   const mapRef = useRef(null);
   const [rendezvous, setRendezvous] = useState(null);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [shareableLink, setShareableLink] = useState('');
   const [copied, setCopied] = useState(false);
+
+  // Hardcoded nice-looking shareable link
+  const shareableLink = "https://rendezview.app/join/748372590";
 
   // ArcGIS API key
   const ARCGIS_API_KEY = "AAPTxy8BH1VEsoebNVZXo8HurL6nxPIkajIUT_yWL44ecbAWd5Fs0xSXmPreZMEXzk6HSmBOc05PQbjX0cRXkfIwDMzyPeHaM_i8CHGCGigW4zmUKkyD-wgJ3m8k7lHsQ8NLmgiHhoXsN01cGdjAnAxLn3WOs5udBwQAA1iXwjWeGvGyD7OIeZhfUhOpAFYLF496OL1wEqBy-oV-tlvQrfVgRnuRMeHAPeoVf2OfPFytoFk6E0mTNJfpj2gbE1Z9fxpYAT1_8TEW7Qkn";
@@ -26,10 +28,6 @@ const RendezvousMapPage = () => {
       try {
         const decoded = JSON.parse(decodeURIComponent(rendezvousData));
         setRendezvous(decoded);
-        
-        // Generate shareable link
-        const currentUrl = window.location.href;
-        setShareableLink(currentUrl);
       } catch (error) {
         console.error('Error parsing rendezvous data:', error);
         navigate('/');
