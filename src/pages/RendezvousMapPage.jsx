@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import useAppNotification from '../hooks/useAppNotification';
 import '../styles/RendezvousMapPage.css';
 import HamburgerMenu from './HamburgerMenu';
 import Map from "@arcgis/core/Map";
@@ -11,24 +12,42 @@ import * as locator from "@arcgis/core/rest/locator";
 const RendezvousMapPage = () => {
   const { rendezvousData } = useParams();
   const navigate = useNavigate();
+  const notification = useAppNotification();
   const mapRef = useRef(null);
   const searchRef = useRef(null);
   const mapViewRef = useRef(null);
   const placesLayerRef = useRef(null);
-  const placeholderLayerRef = useRef(null);
   const [rendezvous, setRendezvous] = useState(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [searchValue, setSearchValue] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [showSearchResults, setShowSearchResults] = useState(false);
-  const [placeholderLocations, setPlaceholderLocations] = useState([]);
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Hardcoded nice-looking shareable link
   const shareableLink = "https://rendezview.app/join/748372590";
 
   // ArcGIS API key
   const ARCGIS_API_KEY = "AAPTxy8BH1VEsoebNVZXo8HurL6nxPIkajIUT_yWL44ecbAWd5Fs0xSXmPreZMEXzk6HSmBOc05PQbjX0cRXkfIwDMzyPeHaM_i8CHGCGigW4zmUKkyD-wgJ3m8k7lHsQ8NLmgiHhoXsN01cGdjAnAxLn3WOs5udBwQAA1iXwjWeGvGyD7OIeZhfUhOpAFYLF496OL1wEqBy-oV-tlvQrfVgRnuRMeHAPeoVf2OfPFytoFk6E0mTNJfpj2gbE1Z9fxpYAT1_8TEW7Qkn";
+
+  // Generate user locations in an expanded irregular triangle formation
+  const generateUserLocations = (centerLat, centerLng) => {
+    const radius = 0.025; // Much larger radius for wide spread
+    return [
+      {
+        id: 'user_1',
+        name: 'Barry Allen',
+        latitude: centerLat + radius * 1.1,
+        longitude: centerLng - radius * 0.6
+      },
+      {
+        id: 'user_2', 
+        name: 'Pietro Maximoff',
+        latitude: centerLat + radius * 0.8,
+        longitude: centerLng + radius * 1.3
+      }
+    ];
+  };
 
   useEffect(() => {
     // Decode the rendezvous data from URL params
@@ -57,11 +76,11 @@ const RendezvousMapPage = () => {
     };
   }, []);
 
-  // Click outside handler for search results
+  // Click outside handler for search suggestions
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setShowSearchResults(false);
+        setShowSuggestions(false);
       }
     };
 
@@ -96,79 +115,7 @@ const RendezvousMapPage = () => {
     }
   };
 
-  // Generate 5 placeholder locations around the main location (approximately 5km radius)
-  const generatePlaceholderLocations = (centerLat, centerLng) => {
-    const placeholders = [];
-    const radius = 0.045; // Approximately 5km in degrees
-    
-    // Create 5 locations in different directions
-    const directions = [
-      { name: "North", lat: centerLat + radius, lng: centerLng, color: [255, 165, 0] }, // Orange
-      { name: "South", lat: centerLat - radius, lng: centerLng, color: [128, 0, 128] }, // Purple
-      { name: "East", lat: centerLat, lng: centerLng + radius, color: [255, 20, 147] }, // Deep Pink
-      { name: "West", lat: centerLat, lng: centerLng - radius, color: [34, 139, 34] }, // Forest Green
-      { name: "Northeast", lat: centerLat + (radius * 0.7), lng: centerLng + (radius * 0.7), color: [255, 140, 0] } // Dark Orange
-    ];
-    
-    return directions.map((dir, index) => ({
-      id: `placeholder_${index}`,
-      name: `Area ${dir.name}`,
-      latitude: dir.lat,
-      longitude: dir.lng,
-      color: dir.color
-    }));
-  };
 
-  const addPlaceholderLocationsToMap = (placeholders) => {
-    if (!placeholderLayerRef.current) return;
-
-    // Clear existing placeholder markers
-    placeholderLayerRef.current.removeAll();
-
-    // Add markers for each placeholder location
-    placeholders.forEach((placeholder) => {
-      const point = {
-        type: "point",
-        longitude: placeholder.longitude,
-        latitude: placeholder.latitude
-      };
-
-      const markerSymbol = {
-        type: "simple-marker",
-        color: placeholder.color,
-        size: "14px",
-        outline: {
-          color: [255, 255, 255],
-          width: 2
-        }
-      };
-
-      const popupTemplate = {
-        title: placeholder.name,
-        content: `
-          <div style="padding: 10px;">
-            <p><strong>Search Area:</strong> ${placeholder.name}</p>
-            <p>This is a search zone approximately 5km from the main rendezvous point.</p>
-            <p style="margin-top: 10px; color: #007bff;">
-              🎯 Search Area Marker
-            </p>
-          </div>
-        `
-      };
-
-      const pointGraphic = new Graphic({
-        geometry: point,
-        symbol: markerSymbol,
-        popupTemplate: popupTemplate,
-        attributes: {
-          placeholderId: placeholder.id,
-          name: placeholder.name
-        }
-      });
-
-      placeholderLayerRef.current.add(pointGraphic);
-    });
-  };
 
   const initializeMap = async () => {
     try {
@@ -220,16 +167,6 @@ const RendezvousMapPage = () => {
       const placesLayer = new GraphicsLayer();
       map.add(placesLayer);
       placesLayerRef.current = placesLayer;
-
-      // Create graphics layer for placeholder locations
-      const placeholderLayer = new GraphicsLayer();
-      map.add(placeholderLayer);
-      placeholderLayerRef.current = placeholderLayer;
-
-      // Generate and add placeholder locations
-      const placeholders = generatePlaceholderLocations(coordinates[1], coordinates[0]);
-      setPlaceholderLocations(placeholders);
-      addPlaceholderLocationsToMap(placeholders);
 
       // Create a point graphic for the rendezvous location
       const point = {
@@ -287,271 +224,210 @@ const RendezvousMapPage = () => {
       await navigator.clipboard.writeText(shareableLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy link:', error);
-    }
-  };
+      notification.success('Link copied!');
 
-  const handleSearch = async (query) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      setShowSearchResults(false);
-      // Clear existing place markers
-      if (placesLayerRef.current) {
-        placesLayerRef.current.removeAll();
-      }
-      return;
-    }
-
-    try {
-      // Get the rendezvous location coordinates
-      let mainSearchCenter;
-      if (rendezvous.location.includes('Current Location') && rendezvous.location.includes('(')) {
-        const coordMatch = rendezvous.location.match(/\(([^)]+)\)/);
-        if (coordMatch) {
-          const [lat, lng] = coordMatch[1].split(',').map(coord => parseFloat(coord.trim()));
-          mainSearchCenter = { latitude: lat, longitude: lng };
-        }
-      } else {
-        // If it's an address, geocode it first
-        const coordinates = await geocodeAddress(rendezvous.location);
-        if (coordinates) {
-          mainSearchCenter = { latitude: coordinates[1], longitude: coordinates[0] };
-        }
-      }
-
-      // If we don't have search center, use default (this shouldn't happen)
-      if (!mainSearchCenter) {
-        mainSearchCenter = { latitude: 34.0522, longitude: -118.2437 }; // Default to LA
-      }
-
-      // Create array of all search centers (main + placeholders)
-      const searchCenters = [
-        { ...mainSearchCenter, name: 'Main Location' },
-        ...placeholderLocations.map(placeholder => ({
-          latitude: placeholder.latitude,
-          longitude: placeholder.longitude,
-          name: placeholder.name
-        }))
-      ];
-
-      console.log('Searching from multiple centers:', searchCenters);
-
-      // Search from all locations
-      const allResults = [];
-      const serviceUrl = "https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer";
-      
-      for (const center of searchCenters) {
-        try {
-          const params = {
-            address: {
-              SingleLine: query
-            },
-            location: {
-              x: center.longitude,
-              y: center.latitude,
-              spatialReference: { wkid: 4326 }
-            },
-            distance: 8000, // 8km radius from each center
-            maxLocations: 10, // Limit per center to avoid too many results
-            outFields: ["Place_addr", "PlaceName", "Type", "Addr_type"],
-            apiKey: ARCGIS_API_KEY
-          };
-
-          const response = await locator.addressToLocations(serviceUrl, params);
-          
-          if (response && response.length > 0) {
-            const results = response
-              .filter(result => result.score > 50) // Filter for better quality results
-              .map((place, index) => ({
-                placeId: `${center.name.replace(/\s+/g, '_')}_${index}`,
-                name: place.attributes?.PlaceName || place.address,
-                address: place.attributes?.Place_addr || place.address,
-                location: {
-                  longitude: place.location.longitude,
-                  latitude: place.location.latitude
-                },
-                categories: place.attributes?.Type ? [{ label: place.attributes.Type }] : [],
-                addressType: place.attributes?.Addr_type || 'Unknown',
-                score: Math.round(place.score),
-                searchArea: center.name
-              }));
-            
-            allResults.push(...results);
-          }
-        } catch (error) {
-          console.error(`Search failed for ${center.name}:`, error);
-          // Continue with other centers even if one fails
-        }
-      }
-
-      // Remove duplicates based on location proximity (within 100m)
-      const uniqueResults = [];
-      allResults.forEach(result => {
-        const isDuplicate = uniqueResults.some(existing => {
-          const distance = Math.sqrt(
-            Math.pow((existing.location.latitude - result.location.latitude) * 111000, 2) +
-            Math.pow((existing.location.longitude - result.location.longitude) * 111000 * Math.cos(result.location.latitude * Math.PI / 180), 2)
-          );
-          return distance < 100; // Less than 100 meters apart
-        });
-
-        if (!isDuplicate) {
-          uniqueResults.push(result);
-        }
-      });
-
-      // Sort by score (highest first) and limit to 25 results
-      const sortedResults = uniqueResults
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 25);
-      
-      console.log(`Found ${sortedResults.length} unique places from ${searchCenters.length} search centers`);
-      
-      setSearchResults(sortedResults);
-      setShowSearchResults(sortedResults.length > 0);
-      
-      // Add place markers to the map
-      if (sortedResults.length > 0) {
-        addPlaceMarkersToMap(sortedResults);
-      }
-      
-    } catch (error) {
-      console.error('Places search failed:', error);
-      setSearchResults([]);
-      setShowSearchResults(false);
-      // Clear existing markers
-      if (placesLayerRef.current) {
-        placesLayerRef.current.removeAll();
-      }
-    }
-  };
-
-  const addPlaceMarkersToMap = (places) => {
-    if (!placesLayerRef.current) return;
-
-    // Clear existing markers
-    placesLayerRef.current.removeAll();
-
-    // Add markers for each place
-    places.forEach((place, index) => {
-      const point = {
-        type: "point",
-        longitude: place.location.longitude,
-        latitude: place.location.latitude
-      };
-
-      const markerSymbol = {
-        type: "simple-marker",
-        color: [0, 123, 255], // Blue color for places
-        size: "12px",
-        outline: {
-          color: [255, 255, 255],
-          width: 2
-        }
-      };
-
-      const popupTemplate = {
-        title: place.name,
-        content: `
-          <div style="padding: 10px;">
-            <p><strong>Address:</strong> ${place.address}</p>
-            ${place.categories && place.categories.length > 0 ? 
-              `<p><strong>Type:</strong> ${place.categories.map(cat => cat.label).join(', ')}</p>` : ''}
-            ${place.score ? 
-              `<p><strong>Relevance:</strong> ${place.score}%</p>` : ''}
-            ${place.searchArea ? 
-              `<p><strong>Found from:</strong> ${place.searchArea}</p>` : ''}
-            <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
-              <button onclick="window.navigateToPlace(${place.location.latitude}, ${place.location.longitude}, '${place.name.replace(/'/g, "\\'")}');" 
-                      style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; width: 100%; margin-bottom: 8px;">
-                🧭 Get Directions
-              </button>
-            </div>
-            <p style="margin-top: 10px; color: #007bff; font-size: 12px;">
-              📍 Search result
-            </p>
-          </div>
-        `
-      };
-
-      const pointGraphic = new Graphic({
-        geometry: point,
-        symbol: markerSymbol,
-        popupTemplate: popupTemplate,
-        attributes: {
-          placeId: place.placeId,
-          name: place.name,
-          searchArea: place.searchArea
-        }
-      });
-
-      placesLayerRef.current.add(pointGraphic);
-    });
-  };
-
-  const showAllSearchResults = () => {
-    if (!mapViewRef.current) {
-      return;
-    }
-
-    // Close the search results dropdown
-    setShowSearchResults(false);
-
-    // Get all graphics (search results + rendezvous point + placeholder locations)
-    const allGraphics = [];
-    
-    // Add search result graphics
-    if (placesLayerRef.current) {
-      placesLayerRef.current.graphics.forEach(graphic => {
-        allGraphics.push(graphic);
-      });
-    }
-
-    // Add placeholder location graphics
-    if (placeholderLayerRef.current) {
-      placeholderLayerRef.current.graphics.forEach(graphic => {
-        allGraphics.push(graphic);
-      });
-    }
-
-    // Add rendezvous point if we have rendezvous data
-    if (rendezvous) {
+      // Get rendezvous coordinates to generate user locations
       let rendezvousCoords;
       if (rendezvous.location.includes('Current Location') && rendezvous.location.includes('(')) {
         const coordMatch = rendezvous.location.match(/\(([^)]+)\)/);
         if (coordMatch) {
           const [lat, lng] = coordMatch[1].split(',').map(coord => parseFloat(coord.trim()));
-          rendezvousCoords = { longitude: lng, latitude: lat };
+          rendezvousCoords = { latitude: lat, longitude: lng };
+        }
+      } else {
+        // If it's an address, geocode it first
+        const coordinates = await geocodeAddress(rendezvous.location);
+        if (coordinates) {
+          rendezvousCoords = { latitude: coordinates[1], longitude: coordinates[0] };
         }
       }
-      
-      if (rendezvousCoords) {
-        const rendezvousPoint = {
-          type: "point",
-          longitude: rendezvousCoords.longitude,
-          latitude: rendezvousCoords.latitude
-        };
-        
-        const rendezvousGraphic = new Graphic({
-          geometry: rendezvousPoint
-        });
-        
-        allGraphics.push(rendezvousGraphic);
-      }
-    }
 
-    // Zoom to show all graphics
-    if (allGraphics.length > 0) {
-      mapViewRef.current.goTo(allGraphics, {
-        duration: 1000, // 1 second animation
-        easing: "ease-in-out"
-      }).then(() => {
-        // Add some padding around the extent
-        const currentExtent = mapViewRef.current.extent;
-        const expandedExtent = currentExtent.expand(1.2); // 20% padding
-        mapViewRef.current.goTo(expandedExtent, { duration: 500 });
-      });
+      if (rendezvousCoords) {
+        // Generate user locations near the rendezvous
+        const usersToJoin = generateUserLocations(rendezvousCoords.latitude, rendezvousCoords.longitude);
+        
+        // Simulate users joining with delays
+                 const simulateUserJoining = async (user, delay) => {
+           setTimeout(async () => {
+             notification.success(`${user.name} joined the rendezvous!`);
+            
+            // Add user's marker to the map
+            if (mapViewRef.current && placesLayerRef.current) {
+              const point = {
+                type: "point",
+                longitude: user.longitude,
+                latitude: user.latitude
+              };
+
+              const userSymbol = {
+                type: "simple-marker",
+                color: [46, 204, 113], // Green color for joined users
+                size: "16px",
+                outline: {
+                  color: [255, 255, 255],
+                  width: 2
+                }
+              };
+
+              const userPopupTemplate = {
+                title: user.name,
+                content: `
+                  <div style="padding: 10px;">
+                    <p><strong>User:</strong> ${user.name}</p>
+                    <p style="margin-top: 10px; color: #2ecc71; font-weight: bold;">
+                      ✅ Joined the rendezvous!
+                    </p>
+                  </div>
+                `
+              };
+
+              const userGraphic = new Graphic({
+                geometry: point,
+                symbol: userSymbol,
+                popupTemplate: userPopupTemplate,
+                attributes: {
+                  userId: user.id,
+                  userName: user.name
+                }
+              });
+
+              placesLayerRef.current.add(userGraphic);
+            }
+          }, delay);
+        };
+
+        // Add delays between users joining (2 seconds after copy, then 3 seconds between users)
+        simulateUserJoining(usersToJoin[0], 2000); // First user joins after 2 seconds
+        simulateUserJoining(usersToJoin[1], 5000); // Second user joins after 5 seconds
+      }
+
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+      notification.error('Failed to copy link.');
+    }
+  };
+
+  const searchAddresses = async (searchText) => {
+    if (!searchText || searchText.trim().length === 0) return;
+    
+    try {
+      const serviceUrl = "https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer";
+      
+      const params = {
+        text: searchText,
+        maxSuggestions: 10,
+        category: "Address",
+        apiKey: ARCGIS_API_KEY
+      };
+
+      const response = await locator.suggestLocations(serviceUrl, params);
+      
+      if (response && response.length > 0) {
+        // suggestLocations returns suggestion objects with text and magicKey
+        const suggestions = response.map(result => ({
+          address: result.text,
+          magicKey: result.magicKey,
+          isCollection: result.isCollection || false
+        }));
+        
+        setSearchSuggestions(suggestions);
+        setShowSuggestions(suggestions.length > 0);
+      } else {
+        setSearchSuggestions([]);
+        setShowSuggestions(false);
+      }
+    } catch (error) {
+      console.error('Address search failed:', error);
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSuggestionClick = async (suggestion) => {
+    setSearchValue(suggestion.address);
+    setSearchSuggestions([]);
+    setShowSuggestions(false);
+    
+    // Geocode the selected suggestion and navigate to it
+    try {
+      const serviceUrl = "https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer";
+      
+      const geocodeParams = {
+        address: { SingleLine: suggestion.address },
+        apiKey: ARCGIS_API_KEY
+      };
+
+      // If suggestion has magicKey, use it for better accuracy
+      if (suggestion.magicKey) {
+        geocodeParams.magicKey = suggestion.magicKey;
+      }
+
+      const geocodeResponse = await locator.addressToLocations(serviceUrl, geocodeParams);
+      
+      if (geocodeResponse && geocodeResponse.length > 0) {
+        const result = geocodeResponse[0];
+        const longitude = result.location.longitude;
+        const latitude = result.location.latitude;
+        
+        // Navigate the map to the selected location
+        if (mapViewRef.current) {
+          mapViewRef.current.goTo({
+            center: [longitude, latitude],
+            zoom: 16
+          });
+          
+          // Clear existing search markers and add new one
+          if (placesLayerRef.current) {
+            placesLayerRef.current.removeAll();
+            
+            // Add marker for the selected location
+            const point = {
+              type: "point",
+              longitude: longitude,
+              latitude: latitude
+            };
+
+            const markerSymbol = {
+              type: "simple-marker",
+              color: [0, 123, 255], // Blue color
+              size: "14px",
+              outline: {
+                color: [255, 255, 255],
+                width: 2
+              }
+            };
+
+            const popupTemplate = {
+              title: result.attributes?.PlaceName || suggestion.address,
+              content: `
+                <div style="padding: 10px;">
+                  <p><strong>Address:</strong> ${result.address}</p>
+                  <p style="margin-top: 10px; color: #007bff;">
+                    📍 Selected location
+                  </p>
+                </div>
+              `
+            };
+
+            const pointGraphic = new Graphic({
+              geometry: point,
+              symbol: markerSymbol,
+              popupTemplate: popupTemplate
+            });
+
+            placesLayerRef.current.add(pointGraphic);
+            
+            // Show popup for the selected location
+            mapViewRef.current.popup.open({
+              features: [pointGraphic],
+              location: point
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to geocode selected suggestion:', error);
+      // Still navigate even if geocoding fails - just set the search value
     }
   };
 
@@ -559,11 +435,17 @@ const RendezvousMapPage = () => {
     const value = e.target.value;
     setSearchValue(value);
     
-    // Debounce search
-    clearTimeout(window.searchTimeout);
-    window.searchTimeout = setTimeout(() => {
-      handleSearch(value);
-    }, 300);
+    // Handle address search when typing - search on any input
+    if (value.trim().length > 0) {
+      // Debounce search
+      clearTimeout(window.searchTimeout);
+      window.searchTimeout = setTimeout(() => {
+        searchAddresses(value);
+      }, 300);
+    } else {
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+    }
   };
 
   const handleSearchKeyDown = (e) => {
@@ -572,35 +454,7 @@ const RendezvousMapPage = () => {
       // Clear any pending debounced search
       clearTimeout(window.searchTimeout);
       // Trigger immediate search
-      handleSearch(searchValue);
-    }
-  };
-
-  const selectSearchResult = (result) => {
-    setSearchValue(result.name);
-    setShowSearchResults(false);
-    
-    // Navigate to the selected place on the map
-    if (mapViewRef.current && result.location) {
-      mapViewRef.current.goTo({
-        center: [result.location.longitude, result.location.latitude],
-        zoom: 17
-      });
-      
-      // Show popup for the selected place
-      const selectedGraphic = placesLayerRef.current.graphics.find(
-        graphic => graphic.attributes.placeId === result.placeId
-      );
-      
-      if (selectedGraphic) {
-        mapViewRef.current.popup.open({
-          features: [selectedGraphic],
-          location: {
-            longitude: result.location.longitude,
-            latitude: result.location.latitude
-          }
-        });
-      }
+      searchAddresses(searchValue);
     }
   };
 
@@ -670,10 +524,11 @@ const RendezvousMapPage = () => {
 
   const clearSearch = () => {
     setSearchValue('');
-    setSearchResults([]);
-    setShowSearchResults(false);
+    setSearchSuggestions([]);
+    setShowSuggestions(false);
+    clearTimeout(window.searchTimeout);
     
-    // Clear place markers from map (but keep placeholder locations visible)
+    // Clear place markers from map
     if (placesLayerRef.current) {
       placesLayerRef.current.removeAll();
     }
@@ -731,53 +586,15 @@ const RendezvousMapPage = () => {
           )}
         </div>
         
-        {showSearchResults && searchResults.length > 0 && (
-          <div className="search-results">
-            <div className="search-results-header">
-              <span className="search-results-count">
-                {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
-              </span>
-              <button className="show-all-btn" onClick={showAllSearchResults}>
-                📍 Show All on Map
-              </button>
-            </div>
-            {searchResults.map((result, index) => (
+        {showSuggestions && searchSuggestions.length > 0 && (
+          <div className="search-suggestions">
+            {searchSuggestions.map((suggestion, index) => (
               <div
                 key={index}
-                className="search-result-item"
+                className="search-suggestion-item"
+                onClick={() => handleSuggestionClick(suggestion)}
               >
-                <div onClick={() => selectSearchResult(result)} style={{ cursor: 'pointer', flex: 1 }}>
-                  <div className="search-result-name">{result.name}</div>
-                  <div className="search-result-address">{result.address}</div>
-                  {result.categories && result.categories.length > 0 && (
-                    <div className="search-result-categories">
-                      {result.categories.map(cat => cat.label).join(', ')}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    {result.score && (
-                      <div className="search-result-distance">
-                        Relevance: {result.score}%
-                      </div>
-                    )}
-                    {result.searchArea && (
-                      <div style={{ fontSize: '11px', color: '#28a745', fontWeight: '500' }}>
-                        📍 {result.searchArea}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f0f0f0' }}>
-                  <button 
-                    className="navigate-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigateToPlace(result.location.latitude, result.location.longitude, result.name);
-                    }}
-                  >
-                    🧭 Get Directions
-                  </button>
-                </div>
+                {suggestion.address}
               </div>
             ))}
           </div>

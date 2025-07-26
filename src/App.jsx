@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { App as AntApp } from 'antd';
 import LoadingScreen from './components/LoadingScreen';
 import HomePage from './pages/HomePage';
 import RendezvousMapPage from './pages/RendezvousMapPage';
@@ -16,23 +17,27 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="App">
-        <LoadingScreen onLoadingComplete={handleLoadingComplete} />
-      </div>
+      <AntApp>
+        <div className="App">
+          <LoadingScreen onLoadingComplete={handleLoadingComplete} />
+        </div>
+      </AntApp>
     );
   }
 
   return (
-    <div className="App">
-      <Router>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/rendezvous/:rendezvousData" element={<RendezvousMapPage />} />
-          {/* Redirect any other routes to home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-    </div>
+    <AntApp>
+      <div className="App">
+        <Router>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/rendezvous/:rendezvousData" element={<RendezvousMapPage />} />
+            {/* Redirect any other routes to home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </div>
+    </AntApp>
   );
 }
 
