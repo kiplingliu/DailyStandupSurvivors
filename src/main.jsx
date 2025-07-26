@@ -13,12 +13,16 @@ createRoot(document.getElementById('root')).render(
       theme={{
         token: {
           colorPrimary: '#00b96b',
-          borderRadius: 4,
+          borderRadius: 8,
         },
         components: {
           Notification: {
             colorSuccess: '#52c41a',
           },
+          Message: {
+            contentBg: 'rgba(160, 163, 171, 0.9)',
+            className: 'custom-message',
+          }
         },
       }}
     >

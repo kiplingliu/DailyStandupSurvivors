@@ -1,56 +1,32 @@
 import { App } from 'antd';
 
 const useAppNotification = () => {
-  const { notification } = App.useApp();
+  const { message: messageApi } = App.useApp();
 
   const showSuccess = (message, description) => {
-    notification.success({
-      message,
-      description,
-      placement: 'top',
-    });
+    messageApi.success(description ? `${message}: ${description}` : message);
   };
 
   const showError = (message, description) => {
-    notification.error({
-      message,
-      description,
-      placement: 'top',
-    });
+    messageApi.error(description ? `${message}: ${description}` : message);
   };
 
   const showInfo = (message, description) => {
-    notification.info({
-      message,
-      description,
-      placement: 'top',
-    });
+    messageApi.info(description ? `${message}: ${description}` : message);
   };
 
   const showWarning = (message, description) => {
-    notification.warning({
-      message,
-      description,
-      placement: 'top',
-    });
+    messageApi.warning(description ? `${message}: ${description}` : message);
   };
 
   const showLoading = (key, message = 'Loading...') => {
-    notification.open({
-      key,
-      message,
-      description: 'Please wait...',
-      duration: 0,
-      placement: 'top',
-    });
+    messageApi.loading({ content: message, key, duration: 0 });
   };
 
   const updateNotification = (key, type, message, description) => {
-    notification[type]({
+    messageApi[type]({
+      content: description ? `${message}: ${description}` : message,
       key,
-      message,
-      description,
-      placement: 'top',
     });
   };
 
