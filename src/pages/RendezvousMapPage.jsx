@@ -351,6 +351,62 @@ const RendezvousMapPage = () => {
     });
   };
 
+  const showAllSearchResults = () => {
+    if (!mapViewRef.current || !placesLayerRef.current || placesLayerRef.current.graphics.length === 0) {
+      return;
+    }
+
+    // Close the search results dropdown
+    setShowSearchResults(false);
+
+    // Get all graphics (search results + rendezvous point)
+    const allGraphics = [];
+    
+    // Add search result graphics
+    placesLayerRef.current.graphics.forEach(graphic => {
+      allGraphics.push(graphic);
+    });
+
+    // Add rendezvous point if we have rendezvous data
+    if (rendezvous) {
+      let rendezvousCoords;
+      if (rendezvous.location.includes('Current Location') && rendezvous.location.includes('(')) {
+        const coordMatch = rendezvous.location.match(/\(([^)]+)\)/);
+        if (coordMatch) {
+          const [lat, lng] = coordMatch[1].split(',').map(coord => parseFloat(coord.trim()));
+          rendezvousCoords = { longitude: lng, latitude: lat };
+        }
+      }
+      
+      if (rendezvousCoords) {
+        const rendezvousPoint = {
+          type: "point",
+          longitude: rendezvousCoords.longitude,
+          latitude: rendezvousCoords.latitude
+        };
+        
+        const rendezvousGraphic = new Graphic({
+          geometry: rendezvousPoint
+        });
+        
+        allGraphics.push(rendezvousGraphic);
+      }
+    }
+
+    // Zoom to show all graphics
+    if (allGraphics.length > 0) {
+      mapViewRef.current.goTo(allGraphics, {
+        duration: 1000, // 1 second animation
+        easing: "ease-in-out"
+      }).then(() => {
+        // Add some padding around the extent
+        const currentExtent = mapViewRef.current.extent;
+        const expandedExtent = currentExtent.expand(1.2); // 20% padding
+        mapViewRef.current.goTo(expandedExtent, { duration: 500 });
+      });
+    }
+  };
+
   const handleSearchInputChange = (e) => {
     const value = e.target.value;
     setSearchValue(value);
@@ -465,6 +521,14 @@ const RendezvousMapPage = () => {
         
         {showSearchResults && searchResults.length > 0 && (
           <div className="search-results">
+            <div className="search-results-header">
+              <span className="search-results-count">
+                {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
+              </span>
+              <button className="show-all-btn" onClick={showAllSearchResults}>
+                📍 Show All on Map
+              </button>
+            </div>
             {searchResults.map((result, index) => (
               <div
                 key={index}
