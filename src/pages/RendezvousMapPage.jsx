@@ -193,9 +193,13 @@ const RendezvousMapPage = () => {
         return;
       }
 
-      // Create the map
+      // Create the map with custom basemap
       const map = new Map({
-        basemap: "arcgis/navigation", // Street view basemap
+        basemap: {
+          portalItem: {
+            id: "4016f6953ec14d03a551611be139ef59"
+          }
+        },
         apiKey: ARCGIS_API_KEY
       });
 
@@ -269,10 +273,13 @@ const RendezvousMapPage = () => {
 
       graphicsLayer.add(pointGraphic);
 
-      // Show popup by default
-      view.popup.open({
-        features: [pointGraphic],
-        location: point
+      // Wait for the view to be ready before opening popup
+      view.when(() => {
+        // Show popup by default
+        view.popup.open({
+          features: [pointGraphic],
+          location: point
+        });
       });
 
       setMapLoaded(true);
@@ -607,7 +614,7 @@ const RendezvousMapPage = () => {
   const navigateToPlace = (latitude, longitude, placeName) => {
     // Get user's current location first
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by this browser. Please use a maps app manually.');
+      alert('Geolocation is not supported by this browser. Please use ArcGIS directions manually.');
       return;
     }
 
@@ -619,11 +626,11 @@ const RendezvousMapPage = () => {
         // Create ArcGIS navigation URL
         const arcgisUrl = `https://www.arcgis.com/apps/directions/index.html?startLat=${userLat}&startLng=${userLng}&endLat=${latitude}&endLng=${longitude}`;
         
-        // Try different navigation options based on device
+        // Check if mobile device
         const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
         if (isMobile) {
-          // For mobile, try ArcGIS Navigator app first, then fallback options
+          // For mobile, try ArcGIS Navigator app first
           const navigatorAppUrl = `arcgis-navigator://?stop=${latitude},${longitude}&stopname=${encodeURIComponent(placeName)}&start=${userLat},${userLng}&startname=Current%20Location`;
           
           // Try ArcGIS Navigator app
@@ -631,24 +638,10 @@ const RendezvousMapPage = () => {
           tempLink.href = navigatorAppUrl;
           tempLink.click();
           
-          // Fallback to web version after a short delay
+          // Fallback to ArcGIS web directions after a short delay
           setTimeout(() => {
-            // Try ArcGIS web directions
             window.open(arcgisUrl, '_blank');
           }, 1000);
-          
-          // Additional fallback to device's default maps after longer delay
-          setTimeout(() => {
-            // iOS Maps fallback
-            if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-              const appleMapsUrl = `http://maps.apple.com/?saddr=${userLat},${userLng}&daddr=${latitude},${longitude}&dirflg=d`;
-              window.open(appleMapsUrl, '_blank');
-            } else {
-              // Android - use generic maps intent
-              const genericMapsUrl = `https://maps.google.com/maps?saddr=${userLat},${userLng}&daddr=${latitude},${longitude}&dirflg=d`;
-              window.open(genericMapsUrl, '_blank');
-            }
-          }, 2000);
         } else {
           // Desktop - open ArcGIS directions in new tab
           window.open(arcgisUrl, '_blank');
