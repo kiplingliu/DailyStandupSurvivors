@@ -28,7 +28,6 @@ const RendezvousMapPage = () => {
   const [characterLocations, setCharacterLocations] = useState([]);
   const [_joinedCharacters, setJoinedCharacters] = useState([]);
   const [candidates, setCandidates] = useState([]);
-  const [isAISearchEnabled, setIsAISearchEnabled] = useState(false);
 
   // Hardcoded nice-looking shareable link
   const shareableLink = "https://rendezview.app/join/748372590";
@@ -785,7 +784,7 @@ useEffect(() => {
     ];
 
     // Filter results to only include places within the triangle
-    return results.filter(result => {
+    const filteredResults = results.filter(result => {
       const resultPoint = {
         latitude: result.location.latitude,
         longitude: result.location.longitude
@@ -793,6 +792,12 @@ useEffect(() => {
       
       return isPointInTriangle(resultPoint, trianglePoints);
     });
+
+    // If we have fewer than 3 results within the triangle, return at least the top 3 overall results
+    if (filteredResults.length < 3) {
+      return results.slice(0, Math.max(3, filteredResults.length));
+    }
+    return filteredResults;
   };
 
   // Simple AI query parser
@@ -927,11 +932,7 @@ useEffect(() => {
     // Debounce search
     clearTimeout(window.searchTimeout);
     window.searchTimeout = setTimeout(() => {
-      if (isAISearchEnabled) {
-        handleAISearch(value);
-      } else {
-        handleSearch(value);
-      }
+      handleSearch(value);
     }, 300);
   };
 
@@ -941,11 +942,7 @@ useEffect(() => {
       // Clear any pending debounced search
       clearTimeout(window.searchTimeout);
       // Trigger immediate search
-      if (isAISearchEnabled) {
-        handleAISearch(searchValue);
-      } else {
-        handleSearch(searchValue);
-      }
+      handleSearch(searchValue);
     }
   };
 
@@ -1106,18 +1103,11 @@ useEffect(() => {
           <input
             type="text"
             className="search-input"
-            placeholder={isAISearchEnabled ? "Try: 'pizza place near me with 4 star rating'" : "Search for places..."}
+            placeholder="Search for places..."
             value={searchValue}
             onChange={handleSearchInputChange}
             onKeyDown={handleSearchKeyDown}
           />
-          <button 
-            className={`ai-toggle-btn ${isAISearchEnabled ? 'active' : ''}`}
-            onClick={() => setIsAISearchEnabled(!isAISearchEnabled)}
-            title={isAISearchEnabled ? "Switch to regular search" : "Switch to AI search"}
-          >
-            🤖
-          </button>
           {searchValue && (
             <button className="clear-search-btn" onClick={clearSearch}>
               ✕
@@ -1129,9 +1119,6 @@ useEffect(() => {
           <div className="search-results">
             <div className="search-results-header">
               <span className="search-results-count">
-                {isAISearchEnabled && (
-                  <span className="ai-indicator">🤖 AI: </span>
-                )}
                 {displayedResults.length} result{displayedResults.length !== 1 ? 's' : ''} found
               </span>
             </div>
@@ -1143,9 +1130,6 @@ useEffect(() => {
                 <div onClick={() => selectSearchResult(result)} style={{ cursor: 'pointer', flex: 1 }}>
                   <div className="search-result-name">
                     {result.name}
-                    {isAISearchEnabled && result.aiContext && (
-                      <span className="ai-badge">🤖</span>
-                    )}
                   </div>
                   <div className="search-result-address">{result.address}</div>
                 </div>
