@@ -1,200 +1,383 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import '../styles/HomePage.css';
 
 const HomePage = () => {
-  const [showModal, setShowModal] = useState(false);
-  const [meetupForm, setMeetupForm] = useState({
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
     name: '',
-    time: '',
+    datetime: '',
     location: '',
     useCurrentLocation: false
   });
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef(null);
+  const suggestionsRef = useRef(null);
 
-  // Fake meetups data
-  const currentMeetups = [
-    {
-      id: 1,
-      name: "Coffee & Code Morning",
-      time: "9:00 AM - 11:00 AM",
-      location: "Starbucks Downtown"
-    },
-    {
-      id: 2,
-      name: "Lunch Networking",
-      time: "12:30 PM - 2:00 PM",
-      location: "Central Park Food Court"
-    },
-    {
-      id: 3,
-      name: "Evening Walk & Talk",
-      time: "6:00 PM - 7:30 PM",
-      location: "Riverside Trail"
-    },
-    {
-      id: 4,
-      name: "Tech Meetup",
-      time: "7:00 PM - 9:00 PM",
-      location: "Innovation Hub"
-    }
-  ];
+  // ArcGIS API key
+  const ARCGIS_API_KEY = "AAPTxy8BH1VEsoebNVZXo8HurL6nxPIkajIUT_yWL44ecbAWd5Fs0xSXmPreZMEXzk6HSmBOc05PQbjX0cRXkfIwDMzyPeHaM_i8CHGCGigW4zmUKkyD-wgJ3m8k7lHsQ8NLmgiHhoXsN01cGdjAnAxLn3WOs5udBwQAA1iXwjWeGvGyD7OIeZhfUhOpAFYLF496OL1wEqBy-oV-tlvQrfVgRnuRMeHAPeoVf2OfPFytoFk6E0mTNJfpj2gbE1Z9fxpYAT1_8TEW7Qkn";
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setMeetupForm(prev => ({
+    setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+
+    // Handle address search when typing in location field - search on any input
+    if (name === 'location' && value.trim().length > 0) {
+      // Clear previous timeout
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      
+      // Very fast response for immediate suggestions
+      searchTimeoutRef.current = setTimeout(() => {
+        searchAddresses(value);
+      }, 100);
+    } else if (name === 'location' && value.trim().length === 0) {
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+    }
   };
 
-  const handleGetCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          // For demo purposes, we'll just show coordinates
-          // In a real app, you'd reverse geocode this to get an address
-          setMeetupForm(prev => ({
-            ...prev,
-            location: `Current Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`,
-            useCurrentLocation: true
-          }));
+  const searchAddresses = async (searchText) => {
+    if (!searchText || searchText.trim().length === 0) return;
+    
+    setIsSearching(true);
+    
+    try {
+      // Load ArcGIS modules
+      const locator = await new Promise((resolve) => {
+        window.require(['esri/rest/locator'], resolve);
+      });
+
+      const serviceUrl = "https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer";
+      
+      const params = {
+        text: searchText,
+        maxSuggestions: 10,
+        category: "Address",
+        apiKey: ARCGIS_API_KEY
+      };
+
+      const response = await locator.suggestLocations(serviceUrl, params);
+      
+      if (response && response.length > 0) {
+        // suggestLocations returns suggestion objects with text and magicKey
+        const suggestions = response.map(result => ({
+          address: result.text,
+          magicKey: result.magicKey,
+          isCollection: result.isCollection || false
+        }));
+        
+        setSearchSuggestions(suggestions);
+        setShowSuggestions(suggestions.length > 0);
+      } else {
+        setSearchSuggestions([]);
+        setShowSuggestions(false);
+      }
+    } catch (error) {
+      console.error('Address search failed:', error);
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSuggestionClick = async (suggestion) => {
+    // Set the address immediately for better UX
+    setFormData(prev => ({
+      ...prev,
+      location: suggestion.address,
+      useCurrentLocation: false
+    }));
+    setSearchSuggestions([]);
+    setShowSuggestions(false);
+    
+    // Optionally geocode the selected suggestion to get coordinates
+    // This happens in the background for future use
+    try {
+      const locator = await new Promise((resolve) => {
+        window.require(['esri/rest/locator'], resolve);
+      });
+
+      const serviceUrl = "https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer";
+      
+      const params = {
+        address: {
+          SingleLine: suggestion.address
         },
-        (error) => {
-          alert('Unable to get your location. Please enter manually.');
-        }
-      );
-    } else {
+        magicKey: suggestion.magicKey,
+        apiKey: ARCGIS_API_KEY
+      };
+
+      await locator.addressToLocations(serviceUrl, params);
+      // We could store the coordinates here if needed for future features
+    } catch (error) {
+      console.error('Failed to geocode selected address:', error);
+      // Not critical - the address text is already set
+    }
+  };
+
+  const reverseGeocode = async (latitude, longitude) => {
+    try {
+      // Load ArcGIS modules using window.require
+      const locator = await new Promise((resolve) => {
+        window.require(['esri/rest/locator'], resolve);
+      });
+
+      const serviceUrl = "https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer";
+      
+      const params = {
+        location: {
+          x: longitude,
+          y: latitude,
+          spatialReference: { wkid: 4326 }
+        },
+        apiKey: ARCGIS_API_KEY
+      };
+
+      const response = await locator.locationToAddress(serviceUrl, params);
+      
+      if (response && response.address) {
+        return response.address;
+      } else {
+        throw new Error('No address found');
+      }
+    } catch (error) {
+      console.error('Reverse geocoding failed:', error);
+      throw error;
+    }
+  };
+
+  const handleGetCurrentLocation = async () => {
+    if (!navigator.geolocation) {
       alert('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    setIsGettingLocation(true);
+
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      
+      try {
+        // Use ArcGIS reverse geocoding to get the address
+        const address = await reverseGeocode(latitude, longitude);
+        
+        setFormData(prev => ({
+          ...prev,
+          location: address,
+          useCurrentLocation: true
+        }));
+      } catch {
+        // Fallback to coordinates if reverse geocoding fails
+        setFormData(prev => ({
+          ...prev,
+          location: `Current Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`,
+          useCurrentLocation: true
+        }));
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+      alert('Unable to get your location. Please enter manually.');
+    } finally {
+      setIsGettingLocation(false);
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('New meetup:', meetupForm);
+    console.log('New rendezvous:', formData);
     // Here you would typically save to a database
-    alert('Meetup created successfully!');
-    setShowModal(false);
-    setMeetupForm({ name: '', time: '', location: '', useCurrentLocation: false });
+    alert('Rendezvous created successfully!');
+    setShowForm(false);
+    setFormData({ name: '', datetime: '', location: '', useCurrentLocation: false });
+    setSearchSuggestions([]);
+    setShowSuggestions(false);
   };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setFormData({ name: '', datetime: '', location: '', useCurrentLocation: false });
+    setSearchSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  // Handle click outside suggestions to close them
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+        setSearchSuggestions([]);
+      }
+    };
+
+    if (showSuggestions) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSuggestions]);
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="home-page">
-      <header className="header">
-        <div className="header-content">
-          <div className="app-brand">
-            <h1 className="app-title">RendezvView</h1>
-            <h2 className="welcome-title">Welcome, Jayvee!</h2>
-          </div>
-        </div>
-      </header>
+      <div className="header">
+        <h1 className="app-title">RendezView</h1>
+        <p className="welcome-message">Welcome, Jayvee!</p>
+      </div>
       
-      <main className="main-content">
-        <div className="meetups-section">
-          <div className="meetups-header">
-            <h3 className="section-title">Current Meetups</h3>
-            <button 
-              className="create-meetup-btn"
-              onClick={() => setShowModal(true)}
-            >
-              + Create Meetup
-            </button>
-          </div>
-          
-          <div className="meetups-list">
-            {currentMeetups.map(meetup => (
-              <div key={meetup.id} className="meetup-card">
-                <div className="meetup-info">
-                  <h4 className="meetup-name">{meetup.name}</h4>
-                  <p className="meetup-time">{meetup.time}</p>
-                  <p className="meetup-location">{meetup.location}</p>
-                </div>
-                <div className="meetup-actions">
-                  <button className="action-btn">Join</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </main>
-
-      {/* Create Meetup Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Create New Meetup</h3>
-              <button 
-                className="close-btn"
-                onClick={() => setShowModal(false)}
-              >
-                ×
-              </button>
+      {!showForm ? (
+        <button 
+          className="create-rendezvous-btn"
+          onClick={() => setShowForm(true)}
+        >
+          + New Rendezvous
+        </button>
+      ) : (
+        <div className="rendezvous-form-container">
+          <form onSubmit={handleSubmit} className="rendezvous-form">
+            <h3 className="form-title">Create Rendezvous</h3>
+            
+            <div className="form-group">
+              <label htmlFor="name">Name</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                placeholder="Enter rendezvous name"
+                required
+              />
             </div>
             
-            <form onSubmit={handleSubmit} className="meetup-form">
-              <div className="form-group">
-                <label htmlFor="name">Meetup Name</label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={meetupForm.name}
-                  onChange={handleInputChange}
-                  placeholder="Enter meetup name"
-                  required
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="time">Time</label>
-                <input
-                  type="datetime-local"
-                  id="time"
-                  name="time"
-                  value={meetupForm.time}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="location">Location</label>
-                <div className="location-input-group">
+            <div className="form-group">
+              <label htmlFor="datetime">Date & Time</label>
+              <input
+                type="datetime-local"
+                id="datetime"
+                name="datetime"
+                value={formData.datetime}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="location">Leaving From</label>
+              <div className="location-input-group">
+                <div className="location-search-container">
                   <input
                     type="text"
                     id="location"
                     name="location"
-                    value={meetupForm.location}
+                    value={formData.location}
                     onChange={handleInputChange}
                     placeholder="Enter location or use current location"
                     required
+                    autoComplete="off"
                   />
-                  <button
-                    type="button"
-                    className="location-btn"
-                    onClick={handleGetCurrentLocation}
-                  >
-                    📍
-                  </button>
+                  {showSuggestions && searchSuggestions.length > 0 && (
+                    <div className="search-suggestions" ref={suggestionsRef}>
+                      {searchSuggestions.map((suggestion, index) => (
+                        <div
+                          key={index}
+                          className="suggestion-item"
+                          onClick={() => handleSuggestionClick(suggestion)}
+                        >
+                          <div className="suggestion-address">{suggestion.address}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {isSearching && (
+                    <div className="search-loading">
+                      <div className="search-spinner">🔍</div>
+                    </div>
+                  )}
                 </div>
-              </div>
-              
-              <div className="form-actions">
-                <button 
-                  type="button" 
-                  className="cancel-btn"
-                  onClick={() => setShowModal(false)}
+                <button
+                  type="button"
+                  className={`location-btn ${isGettingLocation ? 'loading' : ''}`}
+                  onClick={handleGetCurrentLocation}
+                  disabled={isGettingLocation}
+                  title="Use current location"
                 >
-                  Cancel
-                </button>
-                <button type="submit" className="submit-btn">
-                  Create Meetup
+                  {isGettingLocation ? '⏳' : '📍'}
                 </button>
               </div>
-            </form>
-          </div>
+            </div>
+            
+            <div className="form-actions">
+              <button 
+                type="button" 
+                className="cancel-btn"
+                onClick={handleCancel}
+              >
+                Cancel
+              </button>
+              <button type="submit" className="submit-btn">
+                Create Rendezvous
+              </button>
+            </div>
+          </form>
         </div>
       )}
+      
+      <h2 className="scheduled-heading">Upcoming Rendezvous</h2>
+      
+      <div className="rendezvous-list">
+        <div className="rendezvous-card">
+          <h3 className="rendezvous-name">Coffee & Catch Up ☕️</h3>
+          <p className="rendezvous-date">08/01/2025</p>
+          <p className="rendezvous-time">10:00 AM</p>
+          <p className="rendezvous-location">110 N Palm Canyon Dr, Palm Springs, CA 92262</p>
+          <p className="rendezvous-people">People: Kevin, Deanne</p>
+          <button className="view-btn">View</button>
+        </div>
+        
+        <div className="rendezvous-card">
+          <h3 className="rendezvous-name">Bicycle Purchase 🚲</h3>
+          <p className="rendezvous-date">08/03/2025</p>
+          <p className="rendezvous-time">2:30 PM</p>
+          <p className="rendezvous-location">TBD</p>
+          <p className="rendezvous-people">People: Amit</p>
+          <button className="view-btn">View</button>
+        </div>
+        
+        <div className="rendezvous-card">
+          <h3 className="rendezvous-name">Sunset Date 🌅💕</h3>
+          <p className="rendezvous-date">08/05/2025</p>
+          <p className="rendezvous-time">6:00 PM</p>
+          <p className="rendezvous-location">2108 W Oceanfront, Newport Beach, CA 92663</p>
+          <p className="rendezvous-people">People: Kipling</p>
+          <button className="view-btn">View</button>
+        </div>
+      </div>
     </div>
   );
 };
