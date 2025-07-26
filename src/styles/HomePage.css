@@ -1,0 +1,150 @@
+.home-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #ffffff;
+}
+
+.header {
+  background: rgba(15, 52, 96, 0.3);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(233, 69, 96, 0.2);
+  padding: 20px 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  text-align: center;
+}
+
+.app-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0 0 5px 0;
+  background: linear-gradient(135deg, #ffffff 0%, #e94560 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.app-subtitle {
+  font-size: 14px;
+  color: #a8a8a8;
+  margin: 0;
+}
+
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.welcome-section {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.welcome-title {
+  font-size: 32px;
+  font-weight: bold;
+  margin: 0 0 20px 0;
+  background: linear-gradient(135deg, #ffffff 0%, #e94560 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.welcome-text {
+  font-size: 18px;
+  color: #a8a8a8;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.placeholder-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.placeholder-card {
+  background: rgba(15, 52, 96, 0.2);
+  border: 1px solid rgba(233, 69, 96, 0.3);
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 100%;
+}
+
+.placeholder-card h3 {
+  font-size: 24px;
+  margin: 0 0 20px 0;
+  color: #e94560;
+}
+
+.placeholder-card p {
+  font-size: 16px;
+  color: #a8a8a8;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .header {
+    padding: 15px 0;
+  }
+  
+  .app-title {
+    font-size: 20px;
+  }
+  
+  .app-subtitle {
+    font-size: 12px;
+  }
+  
+  .main-content {
+    padding: 30px 15px;
+  }
+  
+  .welcome-title {
+    font-size: 24px;
+  }
+  
+  .welcome-text {
+    font-size: 16px;
+  }
+  
+  .placeholder-card {
+    padding: 30px 20px;
+    margin: 0 10px;
+  }
+  
+  .placeholder-card h3 {
+    font-size: 20px;
+  }
+  
+  .placeholder-card p {
+    font-size: 14px;
+  }
+}
+
+/* Tablet responsive */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .main-content {
+    padding: 50px 30px;
+  }
+  
+  .welcome-title {
+    font-size: 28px;
+  }
+} 
