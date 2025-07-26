@@ -148,18 +148,3 @@
     font-size: 28px;
   }
 } 
-.start-trip-button {
-  background-color: #28a745; /* Green color for a prominent action */
-  color: white;
-  padding: 12px 25px;
-  border: none;
-  border-radius: 5px;
-  font-size: 1.1em;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-  margin-top: 20px; /* Space above the button */
-}
-
-.start-trip-button:hover {
-  background-color: #218838; /* Darker green on hover */
-}
