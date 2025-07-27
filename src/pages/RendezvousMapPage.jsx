@@ -32,6 +32,23 @@ const RendezvousMapPage = () => {
   const [candidates, setCandidates] = useState([]);
   const [rendezvousStarted, setRendezvousStarted] = useState(false);
   const [_confirmedCandidate, setConfirmedCandidate] = useState(null);
+  const [userCoordinates, setUserCoordinates] = useState(null);
+  const [tripStarted, setTripStarted] = useState(false);
+
+  const userCharacter = useMemo(() => {
+    if (!userCoordinates) {
+      return null;
+    }
+
+    return {
+      name: "Jayvee", // The creator is hardcoded as Jayvee in the popup
+      latitude: userCoordinates.latitude,
+      longitude: userCoordinates.longitude,
+      color: [255, 107, 107], // Coral color from the main marker
+      character: "user",
+      joined: true
+    };
+  }, [userCoordinates]);
 
   // Hardcoded nice-looking shareable link
   const shareableLink = "https://rendezview.app/join/748372590";
@@ -247,10 +264,14 @@ useEffect(() => {
         if (coordMatch) {
           const [lat, lng] = coordMatch[1].split(',').map(coord => parseFloat(coord.trim()));
           coordinates = [lng, lat]; // ArcGIS uses [longitude, latitude]
+          setUserCoordinates({ latitude: lat, longitude: lng });
         }
       } else {
         // Geocode the address
         coordinates = await geocodeAddress(rendezvous.location);
+        if (coordinates) {
+          setUserCoordinates({ latitude: coordinates[1], longitude: coordinates[0] });
+        }
       }
 
       if (!coordinates) {
@@ -1226,7 +1247,6 @@ useEffect(() => {
   };
 
   const handleConfirmRendezvous = (candidate) => {
-    setRendezvousStarted(true);
     setConfirmedCandidate(candidate);
     setCandidates([candidate]);
     setSearchResults([]);
@@ -1235,6 +1255,17 @@ useEffect(() => {
       placesLayerRef.current.removeAll();
     }
     notification.success(`Rendezvous point confirmed: ${candidate.name}!`);
+
+    setTimeout(() => {
+      notification.info('You should leave soon!');
+      setRendezvousStarted(true);
+    }, 4000);
+  };
+
+  const handleStartTrip = () => {
+    setTripStarted(true);
+    // Later, this will initiate navigation.
+    notification.info("Trip started!");
   };
 
   const navigateToPlace = (latitude, longitude, placeName) => {
@@ -1412,9 +1443,17 @@ useEffect(() => {
        </div>
      )}
       
-      <div className="map-container" ref={mapRef}></div>
-    </div>
-  );
+     <div className="map-container" ref={mapRef}></div>
+
+     {rendezvousStarted && !tripStarted && (
+       <div className="start-trip-container">
+         <button className="start-trip-btn" onClick={handleStartTrip}>
+           Start Trip
+         </button>
+       </div>
+     )}
+   </div>
+ );
 };
 
 export default RendezvousMapPage; 
