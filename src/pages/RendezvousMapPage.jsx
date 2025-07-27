@@ -31,7 +31,7 @@ const RendezvousMapPage = () => {
   const [_joinedCharacters, setJoinedCharacters] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [rendezvousStarted, setRendezvousStarted] = useState(false);
-  const [confirmedCandidate, setConfirmedCandidate] = useState(null);
+  const [_confirmedCandidate, setConfirmedCandidate] = useState(null);
 
   // Hardcoded nice-looking shareable link
   const shareableLink = "https://rendezview.app/join/748372590";
@@ -630,7 +630,7 @@ useEffect(() => {
     }
   };
 
-  const handleAISearch = async (query) => {
+  const _handleAISearch = async (query) => {
     if (!query.trim()) {
       setSearchResults([]);
       setShowSearchResults(false);
@@ -1061,7 +1061,7 @@ useEffect(() => {
 
               // Create the button element.
               const button = document.createElement("button");
-              button.innerText = "Select as candidate";
+              button.innerText = "Suggest candidate";
               button.classList.add("esri-button"); // Use ArcGIS styles
               button.style.marginTop = "10px";
 
@@ -1129,10 +1129,17 @@ useEffect(() => {
       const newCandidate = { ...place, upvotes: 1, downvotes: 0, isSelected: true, userVote: 'up' };
       if (!firstCandidateSelected.current) {
         firstCandidateSelected.current = true;
+        // Barry upvotes after 2 seconds
         setTimeout(() => {
           setCandidates(prev => prev.map(c => c.placeId === newCandidate.placeId ? { ...c, upvotes: c.upvotes + 1 } : c));
           notification.info(`Barry just upvoted ${place.name}.`);
         }, 2000);
+        
+        // Pietro downvotes after 4 seconds
+        setTimeout(() => {
+          setCandidates(prev => prev.map(c => c.placeId === newCandidate.placeId ? { ...c, downvotes: c.downvotes + 1 } : c));
+          notification.info(`Pietro just downvoted ${place.name}.`);
+        }, 4000);
       }
       return [...newCandidates, newCandidate];
     });
@@ -1304,6 +1311,14 @@ useEffect(() => {
         notification.info('Pietro Maximoff suggested Pielogoy Pizzeria!');
         addSuggestedCandidate(pielogoyPizzeria);
       }, 1000);
+      
+      // Barry upvotes Pietro's suggestion after 3 seconds
+      setTimeout(() => {
+        setCandidates(prev => prev.map(c => 
+          c.placeId === 'pielogoy_pizzeria' ? { ...c, upvotes: c.upvotes + 1 } : c
+        ));
+        notification.info('Barry just upvoted Pielogoy Pizzeria!');
+      }, 3000);
 
       firstClear.current = false;
     }
