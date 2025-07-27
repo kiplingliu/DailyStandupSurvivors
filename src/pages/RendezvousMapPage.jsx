@@ -47,6 +47,7 @@ const RendezvousMapPage = () => {
   const animationCancelRef = useRef(false);
   const progressViewActiveRef = useRef(false);
   const barryMovingRef = useRef(false);
+  const popupWatcherAdded = useRef(false);
 
   // Auto-advance directions: pause 5s, then advance every second
   useEffect(() => {
@@ -145,6 +146,18 @@ const RendezvousMapPage = () => {
 
 useEffect(() => {
   if (!candidateLayerRef.current || !mapViewRef.current) return;
+
+  if (mapViewRef.current.popup && !popupWatcherAdded.current) {
+    const popup = mapViewRef.current.popup;
+    popup.watch('visible', (isVisible) => {
+      if (!isVisible) {
+        setCandidates((prevCandidates) =>
+          prevCandidates.map((c) => ({ ...c, isSelected: false }))
+        );
+      }
+    });
+    popupWatcherAdded.current = true;
+  }
 
   // 1. Redraw all candidate graphics with the latest data
   candidateLayerRef.current.removeAll();
