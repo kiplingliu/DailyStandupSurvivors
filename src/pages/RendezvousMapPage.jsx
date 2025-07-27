@@ -386,10 +386,10 @@ useEffect(() => {
 
       const markerSymbol = {
         type: "simple-marker",
-        color: [255, 107, 107], // Coral color
+        color: [61, 249, 210], // #3df9d2
         size: "16px",
         outline: {
-          color: [255, 255, 255],
+          color: [48, 61, 102], // #303d66
           width: 2
         }
       };
@@ -439,7 +439,7 @@ useEffect(() => {
           name: "Barry Allen",
           latitude: 34.054767, 
           longitude: -117.16708, 
-          color: [255, 215, 0], // Gold
+          color: [253, 187, 103], // #fdbb67
           character: "barry",
           joined: true
         };
@@ -460,7 +460,7 @@ useEffect(() => {
             color: barryCharacter.color,
             size: "16px",
             outline: {
-              color: [255, 255, 255],
+              color: [48, 61, 102], // #303d66
               width: 2
             }
           };
@@ -530,7 +530,7 @@ useEffect(() => {
             type: "simple-fill",
             color: [...pietroCharacter.color, 0.3], // Same color but 30% opacity
             outline: {
-              color: pietroCharacter.color,
+              color: [...pietroCharacter.color, 0], // fully transparent
               width: 2
             }
           };
@@ -1076,10 +1076,10 @@ useEffect(() => {
 
       const markerSymbol = {
         type: "simple-marker",
-        color: [0, 123, 255], // Blue color for places
+        color: [0, 189, 255], // #00BDFF color for places
         size: "12px",
         outline: {
-          color: [255, 255, 255],
+          color: [48, 61, 102], // #303d66
           width: 2
         }
       };
@@ -1534,7 +1534,7 @@ useEffect(() => {
           type: "simple-marker",
           color: [0, 255, 0], // Green for destination
           size: "16px",
-          outline: { color: [255, 255, 255], width: 2 },
+          outline: { color: [48, 61, 102], width: 2 },
         };
 
         const popupTemplate = {
