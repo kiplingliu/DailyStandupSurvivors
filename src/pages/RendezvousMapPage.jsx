@@ -8,6 +8,10 @@ import MapView from "@arcgis/core/views/MapView";
 import Graphic from "@arcgis/core/Graphic";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import * as locator from "@arcgis/core/rest/locator";
+import * as route from "@arcgis/core/rest/route";
+import RouteParameters from "@arcgis/core/rest/support/RouteParameters";
+import FeatureSet from "@arcgis/core/rest/support/FeatureSet";
+import Point from "@arcgis/core/geometry/Point";
 
 const RendezvousMapPage = () => {
   const { rendezvousData } = useParams();
@@ -19,6 +23,8 @@ const RendezvousMapPage = () => {
   const placesLayerRef = useRef(null);
   const charactersLayerRef = useRef(null);
   const candidateLayerRef = useRef(null);
+  const routeLayerRef = useRef(null);
+  const userMarkerRef = useRef(null);
   const firstCandidateSelected = useRef(false);
   const firstClear = useRef(true);
   const [rendezvous, setRendezvous] = useState(null);
@@ -31,9 +37,12 @@ const RendezvousMapPage = () => {
   const [_joinedCharacters, setJoinedCharacters] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [rendezvousStarted, setRendezvousStarted] = useState(false);
-  const [_confirmedCandidate, setConfirmedCandidate] = useState(null);
+  const [confirmedCandidate, setConfirmedCandidate] = useState(null);
   const [userCoordinates, setUserCoordinates] = useState(null);
   const [tripStarted, setTripStarted] = useState(false);
+  const [routeData, setRouteData] = useState(null);
+  const [currentUserPosition, setCurrentUserPosition] = useState(null);
+  const [animationInProgress, setAnimationInProgress] = useState(false);
 
   const userCharacter = useMemo(() => {
     if (!userCoordinates) {
@@ -265,12 +274,14 @@ useEffect(() => {
           const [lat, lng] = coordMatch[1].split(',').map(coord => parseFloat(coord.trim()));
           coordinates = [lng, lat]; // ArcGIS uses [longitude, latitude]
           setUserCoordinates({ latitude: lat, longitude: lng });
+          setCurrentUserPosition({ latitude: lat, longitude: lng });
         }
       } else {
         // Geocode the address
         coordinates = await geocodeAddress(rendezvous.location);
         if (coordinates) {
           setUserCoordinates({ latitude: coordinates[1], longitude: coordinates[0] });
+          setCurrentUserPosition({ latitude: coordinates[1], longitude: coordinates[0] });
         }
       }
 
@@ -328,6 +339,11 @@ useEffect(() => {
       map.add(candidateLayer);
       candidateLayerRef.current = candidateLayer;
 
+      // Create graphics layer for routes
+      const routeLayer = new GraphicsLayer();
+      map.add(routeLayer);
+      routeLayerRef.current = routeLayer;
+
       // Character locations will be added when copy link is clicked
 
       // Create a point graphic for the rendezvous location
@@ -358,6 +374,7 @@ useEffect(() => {
       });
 
       graphicsLayer.add(pointGraphic);
+      userMarkerRef.current = pointGraphic; // Store reference for animation
 
       // Wait for the view to be ready before opening popup
       view.when(() => {
@@ -1262,10 +1279,202 @@ useEffect(() => {
     }, 4000);
   };
 
-  const handleStartTrip = () => {
+  // Function to calculate route using ArcGIS
+  const calculateRoute = async (startPoint, endPoint) => {
+    try {
+      const routeUrl = "https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World";
+
+      // Create route parameters
+      const routeParams = new RouteParameters({
+        stops: new FeatureSet({
+          features: [
+            new Graphic({
+              geometry: new Point({
+                longitude: startPoint.longitude,
+                latitude: startPoint.latitude
+              })
+            }),
+            new Graphic({
+              geometry: new Point({
+                longitude: endPoint.longitude,
+                latitude: endPoint.latitude
+              })
+            })
+          ]
+        }),
+        returnDirections: true,
+        directionsLengthUnits: "miles",
+        apiKey: ARCGIS_API_KEY
+      });
+
+      // Solve the route
+      const result = await route.solve(routeUrl, routeParams);
+      
+      if (result.routeResults && result.routeResults.length > 0) {
+        return result.routeResults[0].route;
+      }
+      throw new Error('No route found');
+    } catch (error) {
+      console.error('Route calculation failed:', error);
+      throw error;
+    }
+  };
+
+  // Function to animate user marker along the route
+  const animateUserMarker = async (routeGeometry) => {
+    if (!userMarkerRef.current || !routeGeometry || animationInProgress) return;
+
+    setAnimationInProgress(true);
+    
+    try {
+      // Get all the path coordinates from the route
+      const paths = routeGeometry.paths[0]; // Get first path
+      const totalPoints = paths.length;
+      const animationDuration = 20000; // 20 seconds for full route
+      const stepDuration = animationDuration / totalPoints;
+
+      // Start animation
+      for (let i = 0; i < totalPoints; i++) {
+        const [longitude, latitude] = paths[i];
+        
+        // Update user marker position
+        const newPoint = {
+          type: "point",
+          longitude: longitude,
+          latitude: latitude
+        };
+
+        userMarkerRef.current.geometry = newPoint;
+        setCurrentUserPosition({ latitude, longitude });
+
+        // Wait for next step
+        await new Promise(resolve => setTimeout(resolve, stepDuration));
+      }
+
+      notification.success('You have arrived at your destination!');
+    } catch (error) {
+      console.error('Animation failed:', error);
+      notification.error('Navigation animation failed');
+    } finally {
+      setAnimationInProgress(false);
+    }
+  };
+
+  // Function to clear all layers except user and destination
+  const clearNonEssentialLayers = () => {
+    // Clear characters layer
+    if (charactersLayerRef.current) {
+      charactersLayerRef.current.removeAll();
+    }
+
+    // Clear places layer
+    if (placesLayerRef.current) {
+      placesLayerRef.current.removeAll();
+    }
+
+    // Clear all candidates except the confirmed one
+    if (candidateLayerRef.current) {
+      candidateLayerRef.current.removeAll();
+      
+      // Re-add only the confirmed candidate
+      if (confirmedCandidate) {
+        const point = {
+          type: "point",
+          longitude: confirmedCandidate.location.longitude,
+          latitude: confirmedCandidate.location.latitude,
+        };
+        
+        const markerSymbol = {
+          type: "simple-marker",
+          color: [0, 255, 0], // Green for destination
+          size: "16px",
+          outline: { color: [255, 255, 255], width: 2 },
+        };
+
+        const popupTemplate = {
+          title: confirmedCandidate.name,
+          content: "Destination"
+        };
+
+        const pointGraphic = new Graphic({
+          geometry: point,
+          symbol: markerSymbol,
+          popupTemplate: popupTemplate,
+        });
+
+        candidateLayerRef.current.add(pointGraphic);
+      }
+    }
+  };
+
+  const handleStartTrip = async () => {
     setTripStarted(true);
-    // Later, this will initiate navigation.
-    notification.info("Trip started!");
+    notification.info("Trip started! Calculating route...");
+
+    try {
+      if (!confirmedCandidate || !userCoordinates) {
+        notification.error("Missing location data for routing");
+        return;
+      }
+
+      // Clear non-essential layers (characters, places, extra candidates)
+      clearNonEssentialLayers();
+
+      // Close any open popups
+      if (mapViewRef.current) {
+        mapViewRef.current.popup.close();
+      }
+
+      const startPoint = {
+        latitude: userCoordinates.latitude,
+        longitude: userCoordinates.longitude
+      };
+
+      const endPoint = {
+        latitude: confirmedCandidate.location.latitude,
+        longitude: confirmedCandidate.location.longitude
+      };
+
+      // Calculate the route
+      const routeResult = await calculateRoute(startPoint, endPoint);
+      setRouteData(routeResult);
+
+      // Add route to map
+      if (routeLayerRef.current && routeResult) {
+        routeLayerRef.current.removeAll();
+
+        const routeSymbol = {
+          type: "simple-line",
+          color: [0, 100, 255], // Blue route line
+          width: 4
+        };
+
+        const routeGraphic = new Graphic({
+          geometry: routeResult.geometry,
+          symbol: routeSymbol
+        });
+
+        routeLayerRef.current.add(routeGraphic);
+
+        // Zoom to show the full route
+        mapViewRef.current.goTo({
+          target: routeResult.geometry,
+          extent: routeResult.geometry.extent.expand(1.5)
+        });
+
+        notification.success("Route calculated! Starting navigation in 10 seconds...");
+
+        // Wait 10 seconds before starting animation
+        setTimeout(() => {
+          notification.info("Navigation started!");
+          animateUserMarker(routeResult.geometry);
+        }, 10000);
+      }
+
+    } catch (error) {
+      console.error('Route calculation failed:', error);
+      notification.error("Failed to calculate route. Please try again.");
+    }
   };
 
   const navigateToPlace = (latitude, longitude, placeName) => {
