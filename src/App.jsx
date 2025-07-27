@@ -13,7 +13,7 @@ function App() {
   const handleLoadingComplete = () => {
     setIsLoading(false);
     // Always redirect to home page after loading
-    // window.history.replaceState({}, '', '/');
+    window.history.replaceState({}, '', '/');
   };
 
   if (isLoading) {

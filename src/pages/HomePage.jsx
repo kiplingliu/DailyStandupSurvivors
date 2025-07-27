@@ -261,7 +261,7 @@ const HomePage = () => {
           alt="RendezView Logo"
           className="app-logo"
         />
-        <p className="welcome-message">Welcome, Jayvee!</p>
+        <p className="welcome-message">Welcome, Deanne!</p>
       </div>
 
       {!showForm ? (
@@ -391,7 +391,7 @@ const HomePage = () => {
           <p className="rendezvous-date">Friday, August 1 2025</p>
           <p className="rendezvous-time">10:00 AM</p>
           <p className="rendezvous-location">Starbucks, 123 Main St, Downtown</p>
-          <p className="rendezvous-people">People: Kevin, Deanne</p>
+          <p className="rendezvous-people">People: Kevin, Jayvee</p>
           <button className="view-btn">View</button>
         </div>
         

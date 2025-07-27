@@ -397,7 +397,7 @@ useEffect(() => {
       };
 
       const popupTemplate = {
-        title: "Jayvee"
+        title: "Deanne"
       };
 
       const pointGraphic = new Graphic({
@@ -958,12 +958,12 @@ useEffect(() => {
           const coordMatch = rendezvous.location.match(/\(([^)]+)\)/);
           if (coordMatch) {
             const [lat, lng] = coordMatch[1].split(',').map(coord => parseFloat(coord.trim()));
-            mainCoords = { latitude: lat, longitude: lng, name: 'Jayvee' };
+            mainCoords = { latitude: lat, longitude: lng, name: 'Deanne' };
           }
         } else {
           const coordinates = await geocodeAddress(rendezvous.location);
           if (coordinates) {
-            mainCoords = { latitude: coordinates[1], longitude: coordinates[0], name: 'Jayvee' };
+            mainCoords = { latitude: coordinates[1], longitude: coordinates[0], name: 'Deanne' };
           }
         }
         if (mainCoords) userLocations.push(mainCoords);
