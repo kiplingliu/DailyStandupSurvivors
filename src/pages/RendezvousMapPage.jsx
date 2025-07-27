@@ -1297,6 +1297,7 @@ useEffect(() => {
   };
 
   const handleConfirmRendezvous = (candidate) => {
+    candidate.isSelected = false;
     setConfirmedCandidate(candidate);
     setCandidates([candidate]);
     setSearchResults([]);
