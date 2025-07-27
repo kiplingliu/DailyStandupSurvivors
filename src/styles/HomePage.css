@@ -34,7 +34,7 @@
 }
 
 .app-logo {
-  width: 240px;
+  width: 300px;
   height: auto;
   margin: 0 0 12px 0;
   max-width: 100%;
@@ -49,7 +49,7 @@
 }
 
 .create-rendezvous-btn {
-  background: var(--gradient-primary);
+  background: #303D66;
   color: var(--white);
   border: none;
   padding: 32px 60px;
@@ -209,7 +209,7 @@
 }
 
 .view-btn {
-  background: var(--white);
+  background: #E7E6FB;
   color: var(--primary-navy);
   border: 2px solid var(--primary-navy);
   padding: 12px 24px;
@@ -596,7 +596,7 @@
   }
   
   .app-logo {
-    width: 200px;
+    width: 250px;
   }
   
   .welcome-message {
@@ -637,7 +637,7 @@
   }
   
   .app-logo {
-    width: 180px;
+    width: 220px;
     margin-bottom: 8px;
   }
   

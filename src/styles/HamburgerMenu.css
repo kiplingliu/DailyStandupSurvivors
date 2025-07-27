@@ -1,7 +1,7 @@
 /* Import color palette from HomePage */
 :root {
-  --primary-navy: #1a237e;
-  --secondary-navy: #3949ab;
+  --primary-navy: #303D66;
+  --secondary-navy: #303D66;
   --light-lavender: #f3f2ff;
   --medium-lavender: #e8e6ff;
   --accent-coral: #7c4dff;
@@ -9,9 +9,9 @@
   --text-dark: #2c2c54;
   --text-medium: #6c7293;
   --text-light: #9ca3af;
-  --shadow-light: rgba(26, 35, 126, 0.05);
-  --shadow-medium: rgba(26, 35, 126, 0.08);
-  --gradient-primary: linear-gradient(135deg, #1a237e 0%, #3949ab 100%);
+  --shadow-light: rgba(48, 61, 102, 0.05);
+  --shadow-medium: rgba(48, 61, 102, 0.08);
+  --gradient-primary: linear-gradient(135deg, #303D66 0%, #303D66 100%);
   --gradient-card: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
 }
 
@@ -303,7 +303,7 @@
 .edit-input:focus {
   outline: none;
   border-color: var(--primary-navy);
-  box-shadow: 0 0 0 2px rgba(26, 35, 126, 0.1);
+  box-shadow: 0 0 0 2px rgba(48, 61, 102, 0.1);
 }
 
 .edit-input::placeholder {
@@ -348,7 +348,7 @@
 .transportation-select:focus {
   outline: none;
   border-color: var(--primary-navy);
-  box-shadow: 0 0 0 2px rgba(26, 35, 126, 0.1);
+  box-shadow: 0 0 0 2px rgba(48, 61, 102, 0.1);
 }
 
 .transportation-select:hover {
@@ -511,7 +511,7 @@
 }
 
 .toggle-switch:hover .toggle-slider {
-  box-shadow: 0 2px 8px rgba(26, 35, 126, 0.2);
+  box-shadow: 0 2px 8px rgba(48, 61, 102, 0.2);
 }
 
 .toggle-switch input:checked:hover + .toggle-slider {
