@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Space } from 'antd';
-import useAppNotification from '../hooks/useAppNotification';
 import '../styles/HomePage.css';
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const notification = useAppNotification();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -271,22 +269,22 @@ const HomePage = () => {
           className="create-rendezvous-btn"
           onClick={() => setShowForm(true)}
         >
-          + New Rendezvous
+          + Let's rendezview!
         </button>
       ) : (
         <div className="rendezvous-form-container">
           <form onSubmit={handleSubmit} className="rendezvous-form">
-            <h3 className="form-title">Create New Rendezvous</h3>
+            <h3 className="form-title">Let's rendezview!</h3>
             
             <div className="form-group">
-              <label htmlFor="name">Rendezvous Name</label>
+              <label htmlFor="name">Rendezview Name</label>
               <input
                 type="text"
                 id="name"
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="Enter rendezvous name"
+                placeholder="What's the plan?"
                 required
               />
             </div>
@@ -378,7 +376,7 @@ const HomePage = () => {
                 Cancel
               </button>
               <button type="submit" className="submit-btn">
-                Create Rendezvous
+                Create Rendezview
               </button>
             </div>
           </form>
@@ -390,7 +388,7 @@ const HomePage = () => {
       <div className="rendezvous-list">
         <div className="rendezvous-card">
           <h3 className="rendezvous-name">Coffee & Catch Up ☕️</h3>
-          <p className="rendezvous-date">08/01/2025</p>
+          <p className="rendezvous-date">Friday, August 1 2025</p>
           <p className="rendezvous-time">10:00 AM</p>
           <p className="rendezvous-location">Starbucks, 123 Main St, Downtown</p>
           <p className="rendezvous-people">People: Kevin, Deanne</p>
@@ -399,7 +397,7 @@ const HomePage = () => {
         
         <div className="rendezvous-card">
           <h3 className="rendezvous-name">Bicycle Purchase 🚲</h3>
-          <p className="rendezvous-date">08/03/2025</p>
+          <p className="rendezvous-date">Sunday, August 3 2025</p>
           <p className="rendezvous-time">2:30 PM</p>
           <p className="rendezvous-location">TBD</p>
           <p className="rendezvous-people">People: Amit</p>
@@ -408,7 +406,7 @@ const HomePage = () => {
         
         <div className="rendezvous-card">
           <h3 className="rendezvous-name">Sunset Date 🌅💕</h3>
-          <p className="rendezvous-date">08/05/2025</p>
+          <p className="rendezvous-date">Tuesday, August 5 2025</p>
           <p className="rendezvous-time">6:00 PM</p>
           <p className="rendezvous-location">Riverside Park, 456 River Ave</p>
           <p className="rendezvous-people">People: Kipling</p>
