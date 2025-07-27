@@ -20,7 +20,7 @@ const HamburgerMenu = ({ title, time, userAddress, shareableLink, copyShareableL
     transportation: 'car'
   });
   const [settings, setSettings] = useState({
-    notifications: true,
+    notifications: false,
     privacy: false
   });
   const editRef = useRef(null);
@@ -304,7 +304,7 @@ const HamburgerMenu = ({ title, time, userAddress, shareableLink, copyShareableL
             {showSettings && (
               <div className="settings-panel">
                 <div className="setting-item">
-                  <span className="setting-label">Notifications</span>
+                  <span className="setting-label">Location Buffer</span>
                   <label className="toggle-switch">
                     <input
                       type="checkbox"
@@ -315,7 +315,7 @@ const HamburgerMenu = ({ title, time, userAddress, shareableLink, copyShareableL
                   </label>
                 </div>
                 <div className="setting-item">
-                  <span className="setting-label">Privacy</span>
+                  <span className="setting-label">Location Sharing</span>
                   <label className="toggle-switch">
                     <input
                       type="checkbox"

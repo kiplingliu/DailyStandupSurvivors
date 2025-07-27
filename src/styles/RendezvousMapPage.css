@@ -507,18 +507,41 @@
 }
 
 .upvote-btn {
-  background-color: #4CAF50; /* Brighter green */
+  background-color: #8bc4a3; /* Darker version of #b0d7c5 */
   color: white;
 }
 
+.upvote-btn:hover:not(.voted) {
+  background-color: #7ab392; /* Darker shade of the new color */
+  transform: translateY(-1px);
+}
+
 .downvote-btn {
-  background-color: #f44336; /* Brighter red */
+  background-color: #935a69;
   color: white;
+}
+
+.downvote-btn:hover:not(.voted) {
+  background-color: #7d4c57; /* Darker shade of #935a69 */
+  transform: translateY(-1px);
 }
 
 .vote-btn.voted {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Suggest candidate button styling */
+.esri-button {
+  background-color: #303D66 !important;
+  color: white !important;
+  border: none !important;
+  transition: all 0.3s ease !important;
+}
+
+.esri-button:hover {
+  background-color: #252f57 !important; /* Darker shade of #303D66 */
+  transform: translateY(-1px) !important;
 }
 .confirm-rendezvous-btn {
   background-color: #28a745;
