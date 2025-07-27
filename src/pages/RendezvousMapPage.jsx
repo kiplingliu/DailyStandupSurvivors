@@ -43,6 +43,10 @@ const RendezvousMapPage = () => {
   const [routeData, setRouteData] = useState(null);
   const [currentUserPosition, setCurrentUserPosition] = useState(null);
   const [animationInProgress, setAnimationInProgress] = useState(false);
+  const [currentDirections, setCurrentDirections] = useState([]);
+  const [currentDirectionIndex, setCurrentDirectionIndex] = useState(0);
+  const [showDirections, setShowDirections] = useState(false);
+  const lastDirectionUpdateRef = useRef(0); // Add ref for throttling direction updates
 
   const userCharacter = useMemo(() => {
     if (!userCoordinates) {
@@ -1304,6 +1308,7 @@ useEffect(() => {
         }),
         returnDirections: true,
         directionsLengthUnits: "miles",
+        directionsTimeAttribute: "TravelTime",
         apiKey: ARCGIS_API_KEY
       });
 
@@ -1311,7 +1316,36 @@ useEffect(() => {
       const result = await route.solve(routeUrl, routeParams);
       
       if (result.routeResults && result.routeResults.length > 0) {
-        return result.routeResults[0].route;
+        const routeResult = result.routeResults[0];
+        
+        // Extract directions from the result
+        const directions = [];
+        let cumulativeDistance = 0;
+        
+        if (routeResult.directions && routeResult.directions.features) {
+          routeResult.directions.features.forEach((feature, index) => {
+            const direction = feature.attributes;
+            const segmentDistance = direction.length || 0;
+            
+            directions.push({
+              index: index,
+              text: direction.text || direction.maneuverType || "Continue",
+              distance: segmentDistance,
+              time: direction.time || 0,
+              maneuverType: direction.maneuverType || "unknown",
+              cumulativeDistance: cumulativeDistance,
+              endDistance: cumulativeDistance + segmentDistance,
+              geometry: feature.geometry // Store geometry for better tracking
+            });
+            
+            cumulativeDistance += segmentDistance;
+          });
+        }
+        
+        return {
+          route: routeResult.route,
+          directions: directions
+        };
       }
       throw new Error('No route found');
     } catch (error) {
@@ -1333,6 +1367,10 @@ useEffect(() => {
       const animationDuration = 20000; // 20 seconds for full route
       const stepDuration = animationDuration / totalPoints;
 
+      // Calculate total route distance for accurate direction updates
+      const totalRouteDistance = routeData?.attributes?.Total_Length || 
+                                calculateTotalRouteDistance(paths);
+
       // Start animation
       for (let i = 0; i < totalPoints; i++) {
         const [longitude, latitude] = paths[i];
@@ -1347,17 +1385,99 @@ useEffect(() => {
         userMarkerRef.current.geometry = newPoint;
         setCurrentUserPosition({ latitude, longitude });
 
+        // Calculate distance traveled so far
+        const distanceTraveled = calculateDistanceTraveled(paths, i);
+        
+        // Update directions based on actual distance traveled (throttled)
+        if (currentDirections.length > 0) {
+          const now = Date.now();
+          if (now - lastDirectionUpdateRef.current > 500) { // Throttle to every 500ms
+            const newDirectionIndex = findCurrentDirectionIndex(distanceTraveled, currentDirections);
+            
+            if (newDirectionIndex !== currentDirectionIndex && newDirectionIndex < currentDirections.length) {
+              setCurrentDirectionIndex(newDirectionIndex);
+              lastDirectionUpdateRef.current = now;
+            }
+          }
+        }
+
+        // Center the map on the user's current position during navigation (optimized)
+        if (mapViewRef.current && i % 3 === 0) { // Update map position every 3rd step for performance
+          // Use requestAnimationFrame for smoother rendering
+          requestAnimationFrame(() => {
+            if (mapViewRef.current) {
+              mapViewRef.current.goTo({
+                center: [longitude, latitude],
+                zoom: 18 // Keep close zoom during navigation
+              }, {
+                duration: 200, // Shorter duration for snappier movement
+                easing: "out-cubic"
+              }).catch(() => {
+                // Ignore goTo errors to prevent blocking
+              });
+            }
+          });
+        }
+
         // Wait for next step
         await new Promise(resolve => setTimeout(resolve, stepDuration));
       }
 
       notification.success('You have arrived at your destination!');
+      setShowDirections(false);
     } catch (error) {
       console.error('Animation failed:', error);
       notification.error('Navigation animation failed');
     } finally {
       setAnimationInProgress(false);
     }
+  };
+
+  // Helper function to calculate total route distance from path coordinates
+  const calculateTotalRouteDistance = (pathCoordinates) => {
+    let totalDistance = 0;
+    for (let i = 1; i < pathCoordinates.length; i++) {
+      const [lng1, lat1] = pathCoordinates[i - 1];
+      const [lng2, lat2] = pathCoordinates[i];
+      totalDistance += calculateHaversineDistance(lat1, lng1, lat2, lng2);
+    }
+    return totalDistance;
+  };
+
+  // Helper function to calculate distance traveled up to a specific point
+  const calculateDistanceTraveled = (pathCoordinates, currentIndex) => {
+    let distanceTraveled = 0;
+    for (let i = 1; i <= currentIndex && i < pathCoordinates.length; i++) {
+      const [lng1, lat1] = pathCoordinates[i - 1];
+      const [lng2, lat2] = pathCoordinates[i];
+      distanceTraveled += calculateHaversineDistance(lat1, lng1, lat2, lng2);
+    }
+    return distanceTraveled;
+  };
+
+  // Helper function to calculate distance between two points using Haversine formula
+  const calculateHaversineDistance = (lat1, lng1, lat2, lng2) => {
+    const R = 3959; // Radius of Earth in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in miles
+  };
+
+  // Helper function to find the current direction index based on distance traveled
+  const findCurrentDirectionIndex = (distanceTraveled, directions) => {
+    for (let i = 0; i < directions.length; i++) {
+      if (distanceTraveled >= directions[i].cumulativeDistance && 
+          distanceTraveled < directions[i].endDistance) {
+        return i;
+      }
+    }
+    // If we're past all directions, return the last one
+    return Math.max(0, directions.length - 1);
   };
 
   // Function to clear all layers except user and destination
@@ -1425,6 +1545,12 @@ useEffect(() => {
         mapViewRef.current.popup.close();
       }
 
+      // First zoom to user location
+      await mapViewRef.current.goTo({
+        center: [userCoordinates.longitude, userCoordinates.latitude],
+        zoom: 18 // Close zoom for navigation
+      });
+
       const startPoint = {
         latitude: userCoordinates.latitude,
         longitude: userCoordinates.longitude
@@ -1437,10 +1563,13 @@ useEffect(() => {
 
       // Calculate the route
       const routeResult = await calculateRoute(startPoint, endPoint);
-      setRouteData(routeResult);
+      setRouteData(routeResult.route);
+      setCurrentDirections(routeResult.directions);
+      setCurrentDirectionIndex(0);
+      setShowDirections(true);
 
       // Add route to map
-      if (routeLayerRef.current && routeResult) {
+      if (routeLayerRef.current && routeResult.route) {
         routeLayerRef.current.removeAll();
 
         const routeSymbol = {
@@ -1450,24 +1579,18 @@ useEffect(() => {
         };
 
         const routeGraphic = new Graphic({
-          geometry: routeResult.geometry,
+          geometry: routeResult.route.geometry,
           symbol: routeSymbol
         });
 
         routeLayerRef.current.add(routeGraphic);
-
-        // Zoom to show the full route
-        mapViewRef.current.goTo({
-          target: routeResult.geometry,
-          extent: routeResult.geometry.extent.expand(1.5)
-        });
 
         notification.success("Route calculated! Starting navigation in 10 seconds...");
 
         // Wait 10 seconds before starting animation
         setTimeout(() => {
           notification.info("Navigation started!");
-          animateUserMarker(routeResult.geometry);
+          animateUserMarker(routeResult.route.geometry);
         }, 10000);
       }
 
@@ -1584,6 +1707,52 @@ useEffect(() => {
     }
   };
 
+  // Helper function to get direction icon based on maneuver type
+  const getDirectionIcon = (maneuverType) => {
+    if (!maneuverType) return '↑';
+    
+    const type = maneuverType.toLowerCase();
+    
+    if (type.includes('straight') || type.includes('continue')) {
+      return '↑';
+    } else if (type.includes('left')) {
+      if (type.includes('sharp')) {
+        return '↶';
+      } else if (type.includes('slight') || type.includes('bear')) {
+        return '↰';
+      } else {
+        return '←';
+      }
+    } else if (type.includes('right')) {
+      if (type.includes('sharp')) {
+        return '↷';
+      } else if (type.includes('slight') || type.includes('bear')) {
+        return '↳';
+      } else {
+        return '→';
+      }
+    } else if (type.includes('uturn') || type.includes('u-turn')) {
+      return '↻';
+    } else if (type.includes('roundabout')) {
+      return '⟲';
+    } else if (type.includes('merge')) {
+      return '↗';
+    } else if (type.includes('exit')) {
+      return '↘';
+    } else {
+      return '↑';
+    }
+  };
+
+  // Helper function to format distance
+  const formatDistance = (distance) => {
+    if (distance < 0.1) {
+      return `${Math.round(distance * 5280)} ft`; // Convert to feet
+    } else {
+      return `${distance.toFixed(1)} mi`;
+    }
+  };
+
   const displayedResults = useMemo(() => {
     const candidateIds = new Set(candidates.map((c) => c.placeId));
     return searchResults.filter((result) => !candidateIds.has(result.placeId));
@@ -1659,6 +1828,40 @@ useEffect(() => {
          <button className="start-trip-btn" onClick={handleStartTrip}>
            Start Trip
          </button>
+       </div>
+     )}
+
+     {showDirections && currentDirections.length > 0 && (
+       <div className="directions-panel">
+         <div className="directions-header">
+           <div className="directions-title">Navigation</div>
+           <div className="directions-progress">
+             Step {currentDirectionIndex + 1} of {currentDirections.length}
+           </div>
+         </div>
+         <div className="current-direction">
+           <div className="direction-icon">
+             {getDirectionIcon(currentDirections[currentDirectionIndex]?.maneuverType)}
+           </div>
+           <div className="direction-text">
+             <div className="direction-instruction">
+               {currentDirections[currentDirectionIndex]?.text || "Continue straight"}
+             </div>
+             <div className="direction-distance">
+               {currentDirections[currentDirectionIndex]?.distance > 0 ? (
+                 `in ${formatDistance(currentDirections[currentDirectionIndex].distance)}`
+               ) : "Continue"}
+             </div>
+           </div>
+         </div>
+         {currentDirectionIndex + 1 < currentDirections.length && (
+           <div className="next-direction">
+             <div className="next-direction-label">Then:</div>
+             <div className="next-direction-text">
+               {currentDirections[currentDirectionIndex + 1]?.text || "Continue"}
+             </div>
+           </div>
+         )}
        </div>
      )}
    </div>
