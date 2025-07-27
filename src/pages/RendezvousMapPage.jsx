@@ -1537,7 +1537,7 @@ useEffect(() => {
         
         const markerSymbol = {
           type: "simple-marker",
-          color: [0, 255, 0], // Green for destination
+          color: [255, 255, 0], // Green for destination
           size: "16px",
           outline: { color: [48, 61, 102], width: 2 },
         };
