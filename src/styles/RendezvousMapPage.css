@@ -513,3 +513,20 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+.confirm-rendezvous-btn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.3s;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.confirm-rendezvous-btn:hover {
+  background-color: #218838;
+}

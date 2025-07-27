@@ -30,6 +30,8 @@ const RendezvousMapPage = () => {
   const [characterLocations, setCharacterLocations] = useState([]);
   const [_joinedCharacters, setJoinedCharacters] = useState([]);
   const [candidates, setCandidates] = useState([]);
+  const [rendezvousStarted, setRendezvousStarted] = useState(false);
+  const [confirmedCandidate, setConfirmedCandidate] = useState(null);
 
   // Hardcoded nice-looking shareable link
   const shareableLink = "https://rendezview.app/join/748372590";
@@ -147,6 +149,17 @@ useEffect(() => {
             buttonContainer.appendChild(downvoteButton);
 
             div.appendChild(buttonContainer);
+
+           if (!rendezvousStarted) {
+             const confirmButton = document.createElement("button");
+             confirmButton.innerText = "Confirm Rendezvous";
+             confirmButton.className = "esri-button confirm-rendezvous-btn";
+             confirmButton.style.marginTop = "10px";
+             confirmButton.style.width = "100%";
+             confirmButton.addEventListener("click", () => handleConfirmRendezvous(candidate));
+             div.appendChild(confirmButton);
+           }
+
             return div;
           },
         },
@@ -182,7 +195,7 @@ useEffect(() => {
     // If no candidate is selected, ensure the popup is closed
     popup.close();
   }
-}, [candidates]); // This single effect handles all updates
+}, [candidates, rendezvousStarted]); // This single effect handles all updates
 
   const geocodeAddress = async (address) => {
     try {
@@ -1064,6 +1077,18 @@ useEffect(() => {
     }
   };
 
+  const handleConfirmRendezvous = (candidate) => {
+    setRendezvousStarted(true);
+    setConfirmedCandidate(candidate);
+    setCandidates([candidate]);
+    setSearchResults([]);
+    setShowSearchResults(false);
+    if (placesLayerRef.current) {
+      placesLayerRef.current.removeAll();
+    }
+    notification.success(`Rendezvous point confirmed: ${candidate.name}!`);
+  };
+
   const navigateToPlace = (latitude, longitude, placeName) => {
     // Get user's current location first
     if (!navigator.geolocation) {
@@ -1187,47 +1212,49 @@ useEffect(() => {
         copied={copied}
       />
       
-      {/* Search Bar */}
-      <div className="search-bar-container" ref={searchRef}>
-        <div className="search-input-wrapper">
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search for places..."
-            value={searchValue}
-            onChange={handleSearchInputChange}
-            onKeyDown={handleSearchKeyDown}
-          />
-          {searchValue && (
-            <button className="clear-search-btn" onClick={clearSearch}>
-              ✕
-            </button>
-          )}
-        </div>
-        
-        {showSearchResults && (
-          <div className="search-results">
-            <div className="search-results-header">
-              <span className="search-results-count">
-                {displayedResults.length} result{displayedResults.length !== 1 ? 's' : ''} found
-              </span>
-            </div>
-            {displayedResults.map((result, index) => (
-              <div
-                key={index}
-                className="search-result-item"
-              >
-                <div onClick={() => selectSearchResult(result)} style={{ cursor: 'pointer', flex: 1 }}>
-                  <div className="search-result-name">
-                    {result.name}
-                  </div>
-                  <div className="search-result-address">{result.address}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+     {!rendezvousStarted && (
+       <div className="search-bar-container" ref={searchRef}>
+         <div className="search-input-wrapper">
+           <input
+             type="text"
+             className="search-input"
+             placeholder="Search for places..."
+             value={searchValue}
+             onChange={handleSearchInputChange}
+             onKeyDown={handleSearchKeyDown}
+           />
+           {searchValue && (
+             <button className="clear-search-btn" onClick={clearSearch}>
+               ✕
+             </button>
+           )}
+         </div>
+
+         {showSearchResults && (
+           <div className="search-results">
+             <div className="search-results-header">
+               <span className="search-results-count">
+                 {displayedResults.length} result
+                 {displayedResults.length !== 1 ? "s" : ""} found
+               </span>
+             </div>
+             {displayedResults.map((result, index) => (
+               <div key={index} className="search-result-item">
+                 <div
+                   onClick={() => selectSearchResult(result)}
+                   style={{ cursor: "pointer", flex: 1 }}
+                 >
+                   <div className="search-result-name">{result.name}</div>
+                   <div className="search-result-address">
+                     {result.address}
+                   </div>
+                 </div>
+               </div>
+             ))}
+           </div>
+         )}
+       </div>
+     )}
       
       <div className="map-container" ref={mapRef}></div>
     </div>
