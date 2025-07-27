@@ -20,6 +20,7 @@ const RendezvousMapPage = () => {
   const charactersLayerRef = useRef(null);
   const candidateLayerRef = useRef(null);
   const firstCandidateSelected = useRef(false);
+  const firstClear = useRef(true);
   const [rendezvous, setRendezvous] = useState(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -983,6 +984,18 @@ useEffect(() => {
     });
   };
 
+  const addSuggestedCandidate = (place) => {
+    setCandidates((prevCandidates) => {
+      const newCandidates = prevCandidates.map(c => ({...c, isSelected: false}));
+      const existingCandidate = newCandidates.find((candidate) => candidate.placeId === place.placeId);
+      if (existingCandidate) {
+        return newCandidates;
+      }
+      const newCandidate = { ...place, upvotes: 1, downvotes: 0, isSelected: false, userVote: null };
+      return [...newCandidates, newCandidate];
+    });
+  };
+
   const handleVote = (placeId, voteType) => {
     setCandidates((prevCandidates) => {
       return prevCandidates.map((candidate) => {
@@ -1105,6 +1118,29 @@ useEffect(() => {
     setSearchValue('');
     setSearchResults([]);
     setShowSearchResults(false);
+
+    if (firstClear.current) {
+      const pielogoyPizzeria = {
+        name: 'Pielogoy Pizzeria',
+        address: '623 Orange St, Redlands, CA 92374',
+        location: {
+          latitude: 34.06041958385699,
+          longitude: -117.18279298491065,
+        },
+        placeId: 'pielogoy_pizzeria', // Unique ID for this mock place
+        categories: [{ label: 'Pizza' }],
+        addressType: 'PointAddress',
+        score: 100,
+        searchArea: 'Redlands'
+      };
+      
+      setTimeout(() => {
+        notification.info('Pietro Maximoff suggested Pielogoy Pizzeria!');
+        addSuggestedCandidate(pielogoyPizzeria);
+      }, 1000);
+
+      firstClear.current = false;
+    }
     
     // Clear place markers from map (but keep character locations visible)
     if (placesLayerRef.current) {
