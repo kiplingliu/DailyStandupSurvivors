@@ -48,6 +48,35 @@ const RendezvousMapPage = () => {
   const [showDirections, setShowDirections] = useState(false);
   const lastDirectionUpdateRef = useRef(0); // Add ref for throttling direction updates
 
+  // Auto-advance directions: pause 5s, then advance every second
+  useEffect(() => {
+    let interval;
+    let timeout;
+    if (showDirections && currentDirections.length > 0) {
+      // Only auto-advance if not at the last direction
+      if (currentDirectionIndex < currentDirections.length - 1) {
+        // Initial 5s pause, then advance every 1s
+        timeout = setTimeout(() => {
+          interval = setInterval(() => {
+            setCurrentDirectionIndex((prev) => {
+              if (prev < currentDirections.length - 1) {
+                return prev + 1;
+              } else {
+                clearInterval(interval);
+                return prev;
+              }
+            });
+          }, 1000);
+        }, 5000);
+      }
+    }
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
+  }, [showDirections, currentDirections.length, currentDirectionIndex]);
+// (removed duplicate/old auto-advance effect)
+
   const userCharacter = useMemo(() => {
     if (!userCoordinates) {
       return null;
@@ -1326,10 +1355,19 @@ useEffect(() => {
           routeResult.directions.features.forEach((feature, index) => {
             const direction = feature.attributes;
             const segmentDistance = direction.length || 0;
+            const directionText = direction.text || direction.maneuverType || "Continue";
+            
+            // Filter out unwanted directions
+            if (directionText.toLowerCase().includes('start at') || 
+                directionText.toLowerCase().includes('finish at') ||
+                directionText.toLowerCase().includes('arrive at') ||
+                directionText.toLowerCase().includes('location 1')) {
+              return; // Skip these directions
+            }
             
             directions.push({
               index: index,
-              text: direction.text || direction.maneuverType || "Continue",
+              text: directionText,
               distance: segmentDistance,
               time: direction.time || 0,
               maneuverType: direction.maneuverType || "unknown",
@@ -1480,14 +1518,9 @@ useEffect(() => {
     return Math.max(0, directions.length - 1);
   };
 
-  // Function to clear all layers except user and destination
+  // Function to clear only non-essential layers (keep characters and destination)
   const clearNonEssentialLayers = () => {
-    // Clear characters layer
-    if (charactersLayerRef.current) {
-      charactersLayerRef.current.removeAll();
-    }
-
-    // Clear places layer
+    // Clear places layer (search results)
     if (placesLayerRef.current) {
       placesLayerRef.current.removeAll();
     }
@@ -1525,6 +1558,7 @@ useEffect(() => {
         candidateLayerRef.current.add(pointGraphic);
       }
     }
+    // Keep characters layer visible - do not clear
   };
 
   const handleStartTrip = async () => {
@@ -1537,7 +1571,7 @@ useEffect(() => {
         return;
       }
 
-      // Clear non-essential layers (characters, places, extra candidates)
+      // Clear non-essential layers (keep characters visible)
       clearNonEssentialLayers();
 
       // Close any open popups
@@ -1591,7 +1625,17 @@ useEffect(() => {
         setTimeout(() => {
           notification.info("Navigation started!");
           animateUserMarker(routeResult.route.geometry);
-        }, 10000);
+        }, 5000);
+        
+        // Notify about other users starting their trips after 1 second
+        setTimeout(() => {
+          notification.info("Barry started the trip!");
+        }, 1000);
+
+        setTimeout(() => {
+          notification.info("Pietro Maximoff started the trip!");
+        }, 2000);
+
       }
 
     } catch (error) {
@@ -1832,6 +1876,14 @@ useEffect(() => {
      )}
 
      {showDirections && currentDirections.length > 0 && (
+       <div className="friends-view-container">
+         <button className="friends-view-btn">
+           Friends View
+         </button>
+       </div>
+     )}
+
+     {showDirections && currentDirections.length > 0 && (
        <div className="directions-panel">
          <div className="directions-header">
            <div className="directions-title">Navigation</div>
@@ -1840,17 +1892,14 @@ useEffect(() => {
            </div>
          </div>
          <div className="current-direction">
-           <div className="direction-icon">
-             {getDirectionIcon(currentDirections[currentDirectionIndex]?.maneuverType)}
-           </div>
            <div className="direction-text">
              <div className="direction-instruction">
-               {currentDirections[currentDirectionIndex]?.text || "Continue straight"}
+               {currentDirections[currentDirectionIndex]?.text || ""}
              </div>
              <div className="direction-distance">
                {currentDirections[currentDirectionIndex]?.distance > 0 ? (
                  `in ${formatDistance(currentDirections[currentDirectionIndex].distance)}`
-               ) : "Continue"}
+               ) : null}
              </div>
            </div>
          </div>
@@ -1858,7 +1907,7 @@ useEffect(() => {
            <div className="next-direction">
              <div className="next-direction-label">Then:</div>
              <div className="next-direction-text">
-               {currentDirections[currentDirectionIndex + 1]?.text || "Continue"}
+               {currentDirections[currentDirectionIndex + 1]?.text || ""}
              </div>
            </div>
          )}
