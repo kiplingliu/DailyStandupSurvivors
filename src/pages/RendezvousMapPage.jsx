@@ -44,6 +44,8 @@ const RendezvousMapPage = () => {
   const [currentDirections, setCurrentDirections] = useState([]);
   const [currentDirectionIndex, setCurrentDirectionIndex] = useState(0);
   const [showDirections, setShowDirections] = useState(false);
+  const [progressViewButtonText, setProgressViewButtonText] = useState("Progress View");
+  const [showProgressViewButton, setShowProgressViewButton] = useState(false);
   const animationCancelRef = useRef(false);
   const progressViewActiveRef = useRef(false);
   const barryMovingRef = useRef(false);
@@ -222,7 +224,7 @@ useEffect(() => {
 
            if (!rendezvousStarted) {
              const confirmButton = document.createElement("button");
-             confirmButton.innerText = "Confirm Rendezvous";
+             confirmButton.innerText = "Confirm Rendezview";
              confirmButton.className = "esri-button confirm-rendezvous-btn";
              confirmButton.style.marginTop = "10px";
              confirmButton.style.width = "100%";
@@ -428,11 +430,11 @@ useEffect(() => {
       await navigator.clipboard.writeText(shareableLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-      notification.success('Rendezvous link copied to clipboard!');
+      notification.success('Rendezview link copied to clipboard!');
       
       // Barry Allen joins after 2 seconds
       setTimeout(() => {
-        notification.info('Barry Allen joined the rendezvous!');
+        notification.info('Barry joined the rendezview!');
         
         // Add Barry to the map and state
         const barryCharacter = {
@@ -486,7 +488,7 @@ useEffect(() => {
       
       // Pietro Maximoff joins after 5 seconds
       setTimeout(() => {
-        notification.info('Pietro Maximoff joined the rendezvous!');
+        notification.info('Pietro joined the rendezview!');
         
         // Add Pietro to the map and state
         const pietroCharacter = {
@@ -556,7 +558,7 @@ useEffect(() => {
       
     } catch (error) {
       console.error('Failed to copy link:', error);
-      notification.error('Failed to copy rendezvous link');
+      notification.error('Failed to copy rendezview link');
     }
   };
 
@@ -1302,7 +1304,7 @@ useEffect(() => {
     if (placesLayerRef.current) {
       placesLayerRef.current.removeAll();
     }
-    notification.success(`Rendezvous point confirmed: ${candidate.name}!`);
+    notification.success(`Rendezview point confirmed: ${candidate.name}!`);
 
     setTimeout(() => {
       notification.info('You should leave soon!');
@@ -1492,6 +1494,8 @@ useEffect(() => {
       if (!animationCancelRef.current) {
         notification.success('You have arrived at Pieology Pizzeria!');
         setShowDirections(false);
+        setShowProgressViewButton(false); // Hide the button when trip ends
+        setProgressViewButtonText("Progress View"); // Reset button text when trip ends
         progressViewActiveRef.current = false;
         arrivals.user = true;
         checkIfEveryoneArrived();
@@ -1563,6 +1567,8 @@ useEffect(() => {
     arrivals.barry = false; 
     arrivals.maximoff = false;
     barryMovingRef.current = false;
+    setProgressViewButtonText("Progress View"); // Reset button text for new trip
+    setShowProgressViewButton(false); // Initially hide button until directions start
 
     try {
       if (!confirmedCandidate || !userCoordinates) {
@@ -1608,6 +1614,7 @@ useEffect(() => {
       setCurrentDirections(customDirections);
       setCurrentDirectionIndex(0);
       setShowDirections(true);
+      setShowProgressViewButton(true); // Show the progress view button when directions start
 
       // Add route to map for user navigation
       if (routeLayerRef.current && routeResult.route) {
@@ -1631,13 +1638,13 @@ useEffect(() => {
         
         // Notify about friends starting their trips and start their movement
         setTimeout(() => {
-          notification.info("Barry Allen started his trip!");
+          notification.info("Barry started his trip!");
           // Start Barry moving immediately when notification appears
           startBarryMovement();
         }, 2000);
 
         setTimeout(() => {
-          notification.info("Pietro Maximoff started his trip!");
+          notification.info("Pietro started his trip!");
           // Start Maximoff moving immediately when notification appears (off screen)
           startMaximoffMovement();
         }, 4000); // Increased delay
@@ -1713,7 +1720,7 @@ useEffect(() => {
     
     // Only send arrival notification from here (progress notifications handled in progress view)
     setTimeout(() => {
-      notification.success('Pietro Maximoff has arrived at Pieology Pizzeria! (Privacy mode)');
+      notification.success('Pietro has arrived at Pieology Pizzeria! (Privacy mode)');
       arrivals.maximoff = true;
       checkIfEveryoneArrived();
     }, maximoffJourneyDuration + 500);
@@ -1784,60 +1791,65 @@ useEffect(() => {
   const handleProgressView = () => {
     console.log('Progress view clicked');
     
-    // Don't cancel user animation - let them continue moving
-    // Hide directions and activate progress view
-    setShowDirections(false);
-    progressViewActiveRef.current = true;
+    // Only handle the switch to progress view if not already in progress view
+    if (progressViewButtonText === "Progress View") {
+      // Don't cancel user animation - let them continue moving
+      // Hide directions and activate progress view
+      setShowDirections(false);
+      setProgressViewButtonText("Navigation View");
+      progressViewActiveRef.current = true;
     
-    // Clear route lines when entering progress view (cleaner look)
-    if (routeLayerRef.current) {
-      routeLayerRef.current.removeAll();
-    }
-    
-    notification.info("Switching to Progress View - tracking Barry and Pietro heading to the pizza place!");
-
-    // Remove Maximoff from the map (privacy mode - location sharing off)
-    removeMaximoffFromMap();
-
-    // Zoom out to show user, Barry, and destination
-    if (mapViewRef.current && confirmedCandidate) {
-      const barryLocation = characterLocations.find(char => char.character === 'barry');
+      // Clear route lines when entering progress view (cleaner look)
+      if (routeLayerRef.current) {
+        routeLayerRef.current.removeAll();
+      }
       
-      if (barryLocation) {
-        const allLocations = [
-          { latitude: userCoordinates?.latitude, longitude: userCoordinates?.longitude },
-          { latitude: barryLocation.latitude, longitude: barryLocation.longitude },
-          { latitude: confirmedCandidate.location.latitude, longitude: confirmedCandidate.location.longitude }
-        ].filter(loc => loc.latitude && loc.longitude);
+      notification.info("Switching to Progress View - tracking Barry and Pietro heading to the pizza place!");
 
-        if (allLocations.length > 0) {
-          // Find center and zoom level to fit all locations
-          const lats = allLocations.map(loc => loc.latitude);
-          const lngs = allLocations.map(loc => loc.longitude);
-          
-          const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-          const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
-          
-          mapViewRef.current.goTo({
-            center: [centerLng, centerLat],
-            zoom: 14 // Reduced zoom (was 12) - less zoomed out
-          }, {
-            duration: 1500,
-            easing: "ease-in-out"
-          });
+      // Remove Maximoff from the map (privacy mode - location sharing off)
+      removeMaximoffFromMap();
+
+      // Zoom out to show user, Barry, and destination
+      if (mapViewRef.current && confirmedCandidate) {
+        const barryLocation = characterLocations.find(char => char.character === 'barry');
+        
+        if (barryLocation) {
+          const allLocations = [
+            { latitude: userCoordinates?.latitude, longitude: userCoordinates?.longitude },
+            { latitude: barryLocation.latitude, longitude: barryLocation.longitude },
+            { latitude: confirmedCandidate.location.latitude, longitude: confirmedCandidate.location.longitude }
+          ].filter(loc => loc.latitude && loc.longitude);
+
+          if (allLocations.length > 0) {
+            // Find center and zoom level to fit all locations
+            const lats = allLocations.map(loc => loc.latitude);
+            const lngs = allLocations.map(loc => loc.longitude);
+            
+            const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+            const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+            
+            mapViewRef.current.goTo({
+              center: [centerLng, centerLat],
+              zoom: 14 // Reduced zoom (was 12) - less zoomed out
+            }, {
+              duration: 1500,
+              easing: "ease-in-out"
+            });
+          }
         }
       }
+
+      // Start Barry's journey to destination
+      setTimeout(() => {
+        startBarryJourney();
+      }, 1500); // Start after zoom completes
+
+      // Maximoff is already moving (started earlier), but restart notifications for progress view
+      setTimeout(() => {
+        startMaximoffProgressNotifications();
+      }, 2000); // Start slightly after Barry
     }
-
-    // Start Barry's journey to destination
-    setTimeout(() => {
-      startBarryJourney();
-    }, 1500); // Start after zoom completes
-
-    // Maximoff is already moving (started earlier), but restart notifications for progress view
-    setTimeout(() => {
-      startMaximoffProgressNotifications();
-    }, 2000); // Start slightly after Barry
+    // If already in Navigation View mode, don't do anything (toggle doesn't work back)
   };
 
   const startMaximoffProgressNotifications = () => {
@@ -1858,7 +1870,7 @@ useEffect(() => {
     maximoffProgressNotifications.forEach(progressNotif => {
       setTimeout(() => {
         if (progressViewActiveRef.current) {
-          notification.info(`Pietro Maximoff is ${progressNotif.percent}% of the way there! (Privacy mode)`);
+          notification.info(`Pietro is ${progressNotif.percent}% of the way there! (Privacy mode)`);
         }
       }, progressNotif.time);
     });
@@ -2022,7 +2034,7 @@ useEffect(() => {
       };
       
       setTimeout(() => {
-        notification.info('Pietro Maximoff suggested Pielogoy Pizzeria!');
+        notification.info('Pietro suggested Pielogoy Pizzeria!');
         addSuggestedCandidate(pielogoyPizzeria);
       }, 1000);
       
@@ -2140,10 +2152,10 @@ useEffect(() => {
        </div>
      )}
 
-     {showDirections && (
-       <div className="friends-view-container">
+     {showProgressViewButton && (
+       <div className={`friends-view-container ${showDirections ? 'with-directions' : 'without-directions'}`}>
          <button className="friends-view-btn" onClick={handleProgressView}>
-           Progress View
+           {progressViewButtonText}
          </button>
        </div>
      )}

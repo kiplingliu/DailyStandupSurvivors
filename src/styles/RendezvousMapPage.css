@@ -569,7 +569,7 @@
 }
 
 .start-trip-btn {
-  background-color: #8A2BE2; /* BlueViolet */
+  background-color: #303D66;
   color: white;
   border: none;
   padding: 15px 30px;
@@ -582,7 +582,7 @@
 }
 
 .start-trip-btn:hover {
-  background-color: #7B1FA2; /* Darker Purple */
+  background-color: #252f57; /* Darker shade of #303D66 */
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
@@ -590,14 +590,23 @@
 /* Friends View Button Styles */
 .friends-view-container {
   position: fixed;
-  bottom: 260px; /* Position higher above directions panel with more gap */
   left: 50%;
   transform: translateX(-50%);
   z-index: 1001;
 }
 
+/* Position above directions when showing Progress View button */
+.friends-view-container.with-directions {
+  bottom: 260px; /* Position higher above directions panel with more gap */
+}
+
+/* Position at bottom when showing Navigation View button (no directions) */
+.friends-view-container.without-directions {
+  bottom: 20px; /* Position at bottom of page */
+}
+
 .friends-view-btn {
-  background: #007bff;
+  background: #303D66;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -605,15 +614,15 @@
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+  box-shadow: 0 4px 15px rgba(48, 61, 102, 0.3);
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
 }
 
 .friends-view-btn:hover {
-  background: #0056b3;
+  background: #252f57; /* Darker shade of #303D66 */
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+  box-shadow: 0 6px 20px rgba(48, 61, 102, 0.4);
 }
 
 /* Directions Panel Styles */
