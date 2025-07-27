@@ -1,0 +1,170 @@
+/* Modern color palette */
+:root {
+  --primary-navy: #1a237e;
+  --secondary-navy: #3949ab;
+  --light-lavender: #f3f2ff;
+  --medium-lavender: #e8e6ff;
+  --accent-coral: #7c4dff;
+  --white: #ffffff;
+  --text-dark: #2c2c54;
+  --text-medium: #6c7293;
+  --text-light: #9ca3af;
+  --shadow-light: rgba(26, 35, 126, 0.08);
+  --shadow-medium: rgba(26, 35, 126, 0.15);
+  --gradient-primary: linear-gradient(135deg, #1a237e 0%, #3949ab 100%);
+  --gradient-card: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+}
+
+/* Main Dashboard Container */
+.dashboard-container {
+  background: var(--light-lavender);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.dashboard-container.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.dashboard-header {
+  background: transparent;
+  padding: 24px 5%;
+  height: auto;
+  line-height: 1;
+}
+
+.dashboard-header .ant-typography {
+  color: var(--text-dark);
+  text-align: center;
+}
+
+.dashboard-content {
+  padding: 0 5% 32px 5%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Trip Timeline */
+.trip-timeline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 48px;
+  text-align: center;
+}
+
+.timeline-visual-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.timeline-item {
+  color: var(--text-dark);
+}
+
+.timeline-item .anticon {
+  font-size: 24px;
+  color: var(--primary-navy);
+  margin-bottom: 8px;
+}
+
+.timeline-item .ant-typography {
+  margin: 0;
+  color: var(--text-dark);
+}
+
+.timeline-item h5.ant-typography {
+  font-weight: 600;
+  color: var(--text-medium);
+}
+
+.timeline-connector {
+  width: 2px;
+  height: 50px;
+  background-color: var(--secondary-navy);
+  margin: 12px 0;
+}
+
+.total-time {
+  margin-top: 24px;
+}
+
+.total-time .ant-typography {
+  color: var(--text-dark);
+  font-weight: 700;
+}
+
+/* Responsive Timeline */
+@media (min-width: 768px) {
+  .trip-timeline {
+    position: relative;
+  }
+
+  .timeline-connector {
+    width: 200px;
+    height: 2px;
+    margin: 0 24px;
+  }
+
+  .trip-timeline {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .total-time {
+    position: absolute;
+    bottom: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 0;
+  }
+}
+
+
+/* General Card Styling */
+.dashboard-card {
+  background: var(--gradient-card);
+  border: 1px solid var(--medium-lavender) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 8px 25px var(--shadow-light) !important;
+  height: 100%;
+  padding: 16px;
+}
+
+.card-title {
+  color: var(--text-dark);
+  margin-bottom: 24px !important;
+}
+
+/* Chart Container */
+.chart-container {
+  width: 100%;
+  height: 300px;
+}
+
+/* Stats Card */
+.stats-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 32px;
+}
+
+.stat-value.ant-typography {
+  color: var(--primary-navy);
+  font-weight: 700;
+  margin: 0;
+  line-height: 1;
+}
+
+.stat-label {
+  color: var(--text-medium);
+  font-size: 1rem;
+}

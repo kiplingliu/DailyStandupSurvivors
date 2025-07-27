@@ -139,7 +139,7 @@ const RendezvousMapPage = () => {
           location: candidateGraphic.geometry,
         });
       }
-    } else if (mapViewRef.current) {
+    } else if (mapViewRef.current && mapViewRef.current.popup) {
       mapViewRef.current.popup.close();
     }
   }, [candidates]);
@@ -1725,6 +1725,8 @@ useEffect(() => {
     if (arrivals.user && arrivals.barry && arrivals.maximoff) {
       setTimeout(() => {
         notification.success('🎉 Everyone has arrived at Pieology Pizzeria! Time to enjoy some pizza!');
+        // Navigate to the dashboard
+        navigate('/dashboard');
       }, 1000);
     }
   };

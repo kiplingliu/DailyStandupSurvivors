@@ -4,6 +4,7 @@ import { App as AntApp } from 'antd';
 import LoadingScreen from './components/LoadingScreen';
 import HomePage from './pages/HomePage';
 import RendezvousMapPage from './pages/RendezvousMapPage';
+import DashboardPage from './pages/DashboardPage';
 import './App.css';
 
 function App() {
@@ -12,7 +13,7 @@ function App() {
   const handleLoadingComplete = () => {
     setIsLoading(false);
     // Always redirect to home page after loading
-    window.history.replaceState({}, '', '/');
+    // window.history.replaceState({}, '', '/');
   };
 
   if (isLoading) {
@@ -32,6 +33,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/rendezvous/:rendezvousData" element={<RendezvousMapPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
             {/* Redirect any other routes to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
