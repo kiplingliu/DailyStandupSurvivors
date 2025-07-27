@@ -40,13 +40,13 @@ const RendezvousMapPage = () => {
   const [confirmedCandidate, setConfirmedCandidate] = useState(null);
   const [userCoordinates, setUserCoordinates] = useState(null);
   const [tripStarted, setTripStarted] = useState(false);
-  const [routeData, setRouteData] = useState(null);
-  const [currentUserPosition, setCurrentUserPosition] = useState(null);
   const [animationInProgress, setAnimationInProgress] = useState(false);
   const [currentDirections, setCurrentDirections] = useState([]);
   const [currentDirectionIndex, setCurrentDirectionIndex] = useState(0);
   const [showDirections, setShowDirections] = useState(false);
-  const lastDirectionUpdateRef = useRef(0); // Add ref for throttling direction updates
+  const animationCancelRef = useRef(false);
+  const progressViewActiveRef = useRef(false);
+  const barryMovingRef = useRef(false);
 
   // Auto-advance directions: pause 5s, then advance every second
   useEffect(() => {
@@ -77,20 +77,7 @@ const RendezvousMapPage = () => {
   }, [showDirections, currentDirections.length, currentDirectionIndex]);
 // (removed duplicate/old auto-advance effect)
 
-  const userCharacter = useMemo(() => {
-    if (!userCoordinates) {
-      return null;
-    }
 
-    return {
-      name: "Jayvee", // The creator is hardcoded as Jayvee in the popup
-      latitude: userCoordinates.latitude,
-      longitude: userCoordinates.longitude,
-      color: [255, 107, 107], // Coral color from the main marker
-      character: "user",
-      joined: true
-    };
-  }, [userCoordinates]);
 
   // Hardcoded nice-looking shareable link
   const shareableLink = "https://rendezview.app/join/748372590";
@@ -307,14 +294,12 @@ useEffect(() => {
           const [lat, lng] = coordMatch[1].split(',').map(coord => parseFloat(coord.trim()));
           coordinates = [lng, lat]; // ArcGIS uses [longitude, latitude]
           setUserCoordinates({ latitude: lat, longitude: lng });
-          setCurrentUserPosition({ latitude: lat, longitude: lng });
         }
       } else {
         // Geocode the address
         coordinates = await geocodeAddress(rendezvous.location);
         if (coordinates) {
           setUserCoordinates({ latitude: coordinates[1], longitude: coordinates[0] });
-          setCurrentUserPosition({ latitude: coordinates[1], longitude: coordinates[0] });
         }
       }
 
@@ -1347,37 +1332,46 @@ useEffect(() => {
       if (result.routeResults && result.routeResults.length > 0) {
         const routeResult = result.routeResults[0];
         
-        // Extract directions from the result
+        // Extract directions from the result (following ArcGIS tutorial approach)
         const directions = [];
         let cumulativeDistance = 0;
+        let cumulativeTime = 0;
         
         if (routeResult.directions && routeResult.directions.features) {
+          console.log('Raw directions from ArcGIS:', routeResult.directions.features.length);
+          
           routeResult.directions.features.forEach((feature, index) => {
-            const direction = feature.attributes;
-            const segmentDistance = direction.length || 0;
-            const directionText = direction.text || direction.maneuverType || "Continue";
+            const attrs = feature.attributes;
+            const segmentDistance = attrs.length || 0; // miles
+            const segmentTime = attrs.time || 0; // minutes  
+            const directionText = attrs.text || "Continue";
             
-            // Filter out unwanted directions
+            console.log(`Direction ${index}: "${directionText}", ${segmentDistance.toFixed(2)} miles, ${segmentTime.toFixed(2)} min`);
+            
+            // Filter out unwanted directions (but keep more than before)
             if (directionText.toLowerCase().includes('start at') || 
-                directionText.toLowerCase().includes('finish at') ||
-                directionText.toLowerCase().includes('arrive at') ||
-                directionText.toLowerCase().includes('location 1')) {
-              return; // Skip these directions
+                directionText.toLowerCase().includes('finish at')) {
+              return; // Skip only start/finish
             }
             
             directions.push({
               index: index,
               text: directionText,
-              distance: segmentDistance,
-              time: direction.time || 0,
-              maneuverType: direction.maneuverType || "unknown",
+              distance: segmentDistance, // miles
+              time: segmentTime, // minutes
+              maneuverType: attrs.maneuverType || "unknown",
               cumulativeDistance: cumulativeDistance,
               endDistance: cumulativeDistance + segmentDistance,
-              geometry: feature.geometry // Store geometry for better tracking
+              cumulativeTime: cumulativeTime,
+              endTime: cumulativeTime + segmentTime,
+              geometry: feature.geometry
             });
             
             cumulativeDistance += segmentDistance;
+            cumulativeTime += segmentTime;
           });
+          
+          console.log(`Processed ${directions.length} directions, total time: ${cumulativeTime.toFixed(2)} minutes`);
         }
         
         return {
@@ -1392,25 +1386,29 @@ useEffect(() => {
     }
   };
 
-  // Function to animate user marker along the route
-  const animateUserMarker = async (routeGeometry) => {
+    // Function to animate user to destination with simple, consistent timing
+  const animateUserToDestination = async (routeGeometry) => {
     if (!userMarkerRef.current || !routeGeometry || animationInProgress) return;
 
     setAnimationInProgress(true);
+    animationCancelRef.current = false;
     
     try {
       // Get all the path coordinates from the route
-      const paths = routeGeometry.paths[0]; // Get first path
-      const totalPoints = paths.length;
-      const animationDuration = 20000; // 20 seconds for full route
-      const stepDuration = animationDuration / totalPoints;
-
-      // Calculate total route distance for accurate direction updates
-      const totalRouteDistance = routeData?.attributes?.Total_Length || 
-                                calculateTotalRouteDistance(paths);
-
-      // Start animation
-      for (let i = 0; i < totalPoints; i++) {
+      const paths = routeGeometry.paths[0];
+      const totalAnimationTime = 35000; // 35 seconds total (slower than friends)
+      const stepDuration = totalAnimationTime / (paths.length - 1);
+      
+      console.log(`Starting user navigation: ${paths.length} points over ${totalAnimationTime}ms`);
+      console.log(`Step duration: ${stepDuration.toFixed(0)}ms per point`);
+      
+      // Animate through each point with consistent timing
+      for (let i = 0; i < paths.length; i++) {
+        if (animationCancelRef.current) {
+          console.log('User animation cancelled at step', i);
+          break;
+        }
+        
         const [longitude, latitude] = paths[i];
         
         // Update user marker position
@@ -1421,102 +1419,51 @@ useEffect(() => {
         };
 
         userMarkerRef.current.geometry = newPoint;
-        setCurrentUserPosition({ latitude, longitude });
 
-        // Calculate distance traveled so far
-        const distanceTraveled = calculateDistanceTraveled(paths, i);
-        
-        // Update directions based on actual distance traveled (throttled)
-        if (currentDirections.length > 0) {
-          const now = Date.now();
-          if (now - lastDirectionUpdateRef.current > 500) { // Throttle to every 500ms
-            const newDirectionIndex = findCurrentDirectionIndex(distanceTraveled, currentDirections);
-            
-            if (newDirectionIndex !== currentDirectionIndex && newDirectionIndex < currentDirections.length) {
-              setCurrentDirectionIndex(newDirectionIndex);
-              lastDirectionUpdateRef.current = now;
-            }
-          }
-        }
-
-        // Center the map on the user's current position during navigation (optimized)
-        if (mapViewRef.current && i % 3 === 0) { // Update map position every 3rd step for performance
-          // Use requestAnimationFrame for smoother rendering
+        // Center map on user only if progress view is not active
+        if (!progressViewActiveRef.current && mapViewRef.current && i % 2 === 0) {
           requestAnimationFrame(() => {
-            if (mapViewRef.current) {
+            if (mapViewRef.current && !progressViewActiveRef.current) {
               mapViewRef.current.goTo({
                 center: [longitude, latitude],
-                zoom: 18 // Keep close zoom during navigation
+                zoom: 16
               }, {
-                duration: 200, // Shorter duration for snappier movement
+                duration: 150,
                 easing: "out-cubic"
               }).catch(() => {
-                // Ignore goTo errors to prevent blocking
+                // Ignore errors
               });
             }
           });
         }
 
-        // Wait for next step
-        await new Promise(resolve => setTimeout(resolve, stepDuration));
+        // Wait for next step with consistent timing
+        if (i < paths.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, stepDuration));
+        }
       }
 
-      notification.success('You have arrived at your destination!');
-      setShowDirections(false);
+      if (!animationCancelRef.current) {
+        notification.success('You have arrived at Pieology Pizzeria!');
+        setShowDirections(false);
+        progressViewActiveRef.current = false;
+        arrivals.user = true;
+        checkIfEveryoneArrived();
+      }
     } catch (error) {
-      console.error('Animation failed:', error);
-      notification.error('Navigation animation failed');
+      console.error('User animation failed:', error);
     } finally {
       setAnimationInProgress(false);
     }
   };
 
-  // Helper function to calculate total route distance from path coordinates
-  const calculateTotalRouteDistance = (pathCoordinates) => {
-    let totalDistance = 0;
-    for (let i = 1; i < pathCoordinates.length; i++) {
-      const [lng1, lat1] = pathCoordinates[i - 1];
-      const [lng2, lat2] = pathCoordinates[i];
-      totalDistance += calculateHaversineDistance(lat1, lng1, lat2, lng2);
-    }
-    return totalDistance;
-  };
 
-  // Helper function to calculate distance traveled up to a specific point
-  const calculateDistanceTraveled = (pathCoordinates, currentIndex) => {
-    let distanceTraveled = 0;
-    for (let i = 1; i <= currentIndex && i < pathCoordinates.length; i++) {
-      const [lng1, lat1] = pathCoordinates[i - 1];
-      const [lng2, lat2] = pathCoordinates[i];
-      distanceTraveled += calculateHaversineDistance(lat1, lng1, lat2, lng2);
-    }
-    return distanceTraveled;
-  };
 
-  // Helper function to calculate distance between two points using Haversine formula
-  const calculateHaversineDistance = (lat1, lng1, lat2, lng2) => {
-    const R = 3959; // Radius of Earth in miles
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Distance in miles
-  };
 
-  // Helper function to find the current direction index based on distance traveled
-  const findCurrentDirectionIndex = (distanceTraveled, directions) => {
-    for (let i = 0; i < directions.length; i++) {
-      if (distanceTraveled >= directions[i].cumulativeDistance && 
-          distanceTraveled < directions[i].endDistance) {
-        return i;
-      }
-    }
-    // If we're past all directions, return the last one
-    return Math.max(0, directions.length - 1);
-  };
+
+
+
+
 
   // Function to clear only non-essential layers (keep characters and destination)
   const clearNonEssentialLayers = () => {
@@ -1565,6 +1512,12 @@ useEffect(() => {
     setTripStarted(true);
     notification.info("Trip started! Calculating route...");
 
+    // Reset arrivals and movement flags for new trip
+    arrivals.user = false;
+    arrivals.barry = false; 
+    arrivals.maximoff = false;
+    barryMovingRef.current = false;
+
     try {
       if (!confirmedCandidate || !userCoordinates) {
         notification.error("Missing location data for routing");
@@ -1579,10 +1532,10 @@ useEffect(() => {
         mapViewRef.current.popup.close();
       }
 
-      // First zoom to user location
+      // Zoom to user location for navigation
       await mapViewRef.current.goTo({
         center: [userCoordinates.longitude, userCoordinates.latitude],
-        zoom: 18 // Close zoom for navigation
+        zoom: 16 // Good zoom for navigation
       });
 
       const startPoint = {
@@ -1597,12 +1550,20 @@ useEffect(() => {
 
       // Calculate the route
       const routeResult = await calculateRoute(startPoint, endPoint);
-      setRouteData(routeResult.route);
-      setCurrentDirections(routeResult.directions);
+      
+      // Use custom directions instead of ArcGIS directions for better timing control
+      const customDirections = [
+        { text: "Head northwest on New York St", duration: 1000 }, // 2 seconds
+        { text: "Continue forward on New York St", duration: 2000 }, // 7 seconds  
+        { text: "Turn right onto W Redlands Blvd", duration: 2000 }, // 3 seconds
+        { text: "Turn left onto Orange St", duration: 12000 } // 12 seconds (longer segment)
+      ];
+      
+      setCurrentDirections(customDirections);
       setCurrentDirectionIndex(0);
       setShowDirections(true);
 
-      // Add route to map
+      // Add route to map for user navigation
       if (routeLayerRef.current && routeResult.route) {
         routeLayerRef.current.removeAll();
 
@@ -1619,28 +1580,106 @@ useEffect(() => {
 
         routeLayerRef.current.add(routeGraphic);
 
-        notification.success("Route calculated! Starting navigation in 10 seconds...");
-
-        // Wait 10 seconds before starting animation
-        setTimeout(() => {
-          notification.info("Navigation started!");
-          animateUserMarker(routeResult.route.geometry);
-        }, 5000);
+        // Start navigation immediately
+        notification.success("Navigation started!");
         
-        // Notify about other users starting their trips after 1 second
+        // Notify about friends starting their trips and start their movement
         setTimeout(() => {
-          notification.info("Barry started the trip!");
-        }, 1000);
-
-        setTimeout(() => {
-          notification.info("Pietro Maximoff started the trip!");
+          notification.info("Barry Allen started his trip!");
+          // Start Barry moving immediately when notification appears
+          startBarryMovement();
         }, 2000);
 
+        setTimeout(() => {
+          notification.info("Pietro Maximoff started his trip!");
+          // Start Maximoff moving immediately when notification appears (off screen)
+          startMaximoffMovement();
+        }, 4000); // Increased delay
+
+        // Start user navigation animation (35 seconds total)
+        animateUserToDestination(routeResult.route.geometry);
+        
+        // Start custom direction progression
+        startCustomDirections(customDirections);
       }
 
     } catch (error) {
       console.error('Route calculation failed:', error);
       notification.error("Failed to calculate route. Please try again.");
+    }
+  };
+
+  // Function to progress through custom directions with predefined timing
+  const startCustomDirections = (directions) => {
+    console.log('Starting custom direction progression');
+    
+    let cumulativeTime = 0;
+    
+    directions.forEach((direction, index) => {
+      setTimeout(() => {
+        // Only update directions if progress view is not active
+        if (!progressViewActiveRef.current && index < directions.length) {
+          setCurrentDirectionIndex(index);
+          console.log(`Direction ${index + 1}: "${direction.text}" (${direction.duration}ms)`);
+        }
+      }, cumulativeTime);
+      
+      cumulativeTime += direction.duration;
+    });
+  };
+
+  // Start Barry moving to destination (called when trip notification appears)
+  const startBarryMovement = async () => {
+    if (!confirmedCandidate || barryMovingRef.current) return;
+    
+    const barryLocation = characterLocations.find(char => char.character === 'barry');
+    if (!barryLocation) return;
+
+    console.log('Barry starting his journey immediately');
+    barryMovingRef.current = true;
+    
+    try {
+      const barryRoute = await calculateRoute(
+        { latitude: barryLocation.latitude, longitude: barryLocation.longitude },
+        { latitude: confirmedCandidate.location.latitude, longitude: confirmedCandidate.location.longitude }
+      );
+
+      // Animate Barry to destination over 25 seconds
+      animateBarryToDestination(barryLocation, barryRoute.route.geometry, 25000);
+      
+    } catch (error) {
+      console.error('Failed to calculate Barry\'s route:', error);
+      barryMovingRef.current = false;
+    }
+  };
+
+    // Start Maximoff moving to destination (called when trip notification appears, off screen)
+  const startMaximoffMovement = () => {
+    if (!confirmedCandidate) return;
+    
+    const maximoffLocation = characterLocations.find(char => char.character === 'pietro');
+    if (!maximoffLocation) return;
+
+    console.log('Pietro Maximoff starting his journey immediately (off screen)');
+    
+    // Start Maximoff's virtual journey - only send arrival notification here
+    const maximoffJourneyDuration = 30000; // 30 seconds
+    
+    // Only send arrival notification from here (progress notifications handled in progress view)
+    setTimeout(() => {
+      notification.success('Pietro Maximoff has arrived at Pieology Pizzeria! (Privacy mode)');
+      arrivals.maximoff = true;
+      checkIfEveryoneArrived();
+    }, maximoffJourneyDuration + 500);
+  };
+
+  // Track arrivals and notify when everyone has arrived
+  const arrivals = { user: false, barry: false, maximoff: false };
+  const checkIfEveryoneArrived = () => {
+    if (arrivals.user && arrivals.barry && arrivals.maximoff) {
+      setTimeout(() => {
+        notification.success('🎉 Everyone has arrived at Pieology Pizzeria! Time to enjoy some pizza!');
+      }, 1000);
     }
   };
 
@@ -1693,6 +1732,208 @@ useEffect(() => {
       }
     );
   };
+
+  const handleProgressView = () => {
+    console.log('Progress view clicked');
+    
+    // Don't cancel user animation - let them continue moving
+    // Hide directions and activate progress view
+    setShowDirections(false);
+    progressViewActiveRef.current = true;
+    
+    // Clear route lines when entering progress view (cleaner look)
+    if (routeLayerRef.current) {
+      routeLayerRef.current.removeAll();
+    }
+    
+    notification.info("Switching to Progress View - tracking Barry and Pietro heading to the pizza place!");
+
+    // Remove Maximoff from the map (privacy mode - location sharing off)
+    removeMaximoffFromMap();
+
+    // Zoom out to show user, Barry, and destination
+    if (mapViewRef.current && confirmedCandidate) {
+      const barryLocation = characterLocations.find(char => char.character === 'barry');
+      
+      if (barryLocation) {
+        const allLocations = [
+          { latitude: userCoordinates?.latitude, longitude: userCoordinates?.longitude },
+          { latitude: barryLocation.latitude, longitude: barryLocation.longitude },
+          { latitude: confirmedCandidate.location.latitude, longitude: confirmedCandidate.location.longitude }
+        ].filter(loc => loc.latitude && loc.longitude);
+
+        if (allLocations.length > 0) {
+          // Find center and zoom level to fit all locations
+          const lats = allLocations.map(loc => loc.latitude);
+          const lngs = allLocations.map(loc => loc.longitude);
+          
+          const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+          const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+          
+          mapViewRef.current.goTo({
+            center: [centerLng, centerLat],
+            zoom: 14 // Reduced zoom (was 12) - less zoomed out
+          }, {
+            duration: 1500,
+            easing: "ease-in-out"
+          });
+        }
+      }
+    }
+
+    // Start Barry's journey to destination
+    setTimeout(() => {
+      startBarryJourney();
+    }, 1500); // Start after zoom completes
+
+    // Maximoff is already moving (started earlier), but restart notifications for progress view
+    setTimeout(() => {
+      startMaximoffProgressNotifications();
+    }, 2000); // Start slightly after Barry
+  };
+
+  const startMaximoffProgressNotifications = () => {
+    if (!progressViewActiveRef.current) return;
+
+    console.log('Starting Maximoff progress view notifications (privacy mode)');
+    
+    // Calculate how much time is left in Maximoff's journey when progress view starts
+    // Assuming progress view is typically activated around 12-15 seconds into the trip
+    const remainingJourneyDuration = 15000; // 15 seconds remaining
+    
+    // Send progress notifications for Maximoff in progress view only
+    const maximoffProgressNotifications = [
+      { percent: 50, time: remainingJourneyDuration * 0.2 }, // Show 50% early since we're mid-journey
+      { percent: 75, time: remainingJourneyDuration * 0.6 }
+    ];
+
+    maximoffProgressNotifications.forEach(progressNotif => {
+      setTimeout(() => {
+        if (progressViewActiveRef.current) {
+          notification.info(`Pietro Maximoff is ${progressNotif.percent}% of the way there! (Privacy mode)`);
+        }
+      }, progressNotif.time);
+    });
+
+    // Don't send arrival notification here - it's handled in startMaximoffMovement
+  };
+
+  const removeMaximoffFromMap = () => {
+    if (!charactersLayerRef.current) return;
+    
+    // Find and remove Maximoff's graphics (both marker and privacy buffer)
+    const graphicsToRemove = [];
+    charactersLayerRef.current.graphics.forEach(graphic => {
+      if (graphic.attributes?.character === 'pietro') {
+        graphicsToRemove.push(graphic);
+      }
+    });
+    
+    graphicsToRemove.forEach(graphic => {
+      charactersLayerRef.current.remove(graphic);
+    });
+    
+    console.log('Removed Maximoff from map');
+  };
+
+  const startBarryJourney = async () => {
+    if (!confirmedCandidate) return;
+    
+    // If Barry is already moving, don't restart his animation - just let progress view show him
+    if (barryMovingRef.current) {
+      console.log('Barry is already moving, not restarting animation');
+      return;
+    }
+    
+    const barryLocation = characterLocations.find(char => char.character === 'barry');
+    if (!barryLocation) return;
+
+    console.log('Barry starting journey in progress view');
+    barryMovingRef.current = true;
+
+    // Calculate Barry's route
+    try {
+      const barryRoute = await calculateRoute(
+        { latitude: barryLocation.latitude, longitude: barryLocation.longitude },
+        { latitude: confirmedCandidate.location.latitude, longitude: confirmedCandidate.location.longitude }
+      );
+
+      // Skip adding Barry's route line - just show dot moving
+      
+      // Animate Barry to destination with progress notifications (15 seconds in progress view)
+      animateBarryToDestination(barryLocation, barryRoute.route.geometry, 15000);
+      
+    } catch (error) {
+      console.error('Failed to calculate Barry\'s route:', error);
+      barryMovingRef.current = false;
+    }
+  };
+
+    const animateBarryToDestination = async (barryLocation, routeGeometry, duration = 25000) => {
+    if (!charactersLayerRef.current || !routeGeometry) return;
+
+    // Find Barry's graphic on the map
+    const barryGraphic = charactersLayerRef.current.graphics.find(
+      graphic => graphic.attributes?.character === 'barry'
+    );
+
+    if (!barryGraphic) {
+      console.log('Barry graphic not found');
+      return;
+    }
+
+    console.log(`Starting Barry's ${duration}ms journey to destination`);
+
+    // Get route path points  
+    const paths = routeGeometry.paths[0];
+    const stepDuration = duration / (paths.length - 1);
+
+    // Send progress notifications (only if in progress view)
+    const progressNotifications = [
+      { percent: 25, time: duration * 0.25 },
+      { percent: 50, time: duration * 0.5 },
+      { percent: 75, time: duration * 0.75 }
+    ];
+
+    progressNotifications.forEach(progressNotif => {
+      setTimeout(() => {
+        if (progressViewActiveRef.current) {
+          notification.info(`Barry is ${progressNotif.percent}% of the way there!`);
+        }
+      }, progressNotif.time);
+    });
+
+    // Animate Barry along the route
+    for (let i = 0; i < paths.length; i++) {
+      const [longitude, latitude] = paths[i];
+
+      // Update Barry's position
+      const newPoint = {
+        type: "point",
+        longitude: longitude,
+        latitude: latitude
+      };
+
+      if (barryGraphic && charactersLayerRef.current.graphics.includes(barryGraphic)) {
+        barryGraphic.geometry = newPoint;
+      }
+
+      // Wait for next step
+      if (i < paths.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, stepDuration));
+      }
+    }
+
+    // Barry arrived notification
+    setTimeout(() => {
+      notification.success('Barry has arrived at Pieology Pizzeria!');
+      arrivals.barry = true;
+      barryMovingRef.current = false; // Reset Barry movement flag
+      checkIfEveryoneArrived();
+    }, 500);
+  };
+
+
 
   const clearSearch = () => {
     setSearchValue('');
@@ -1751,51 +1992,9 @@ useEffect(() => {
     }
   };
 
-  // Helper function to get direction icon based on maneuver type
-  const getDirectionIcon = (maneuverType) => {
-    if (!maneuverType) return '↑';
-    
-    const type = maneuverType.toLowerCase();
-    
-    if (type.includes('straight') || type.includes('continue')) {
-      return '↑';
-    } else if (type.includes('left')) {
-      if (type.includes('sharp')) {
-        return '↶';
-      } else if (type.includes('slight') || type.includes('bear')) {
-        return '↰';
-      } else {
-        return '←';
-      }
-    } else if (type.includes('right')) {
-      if (type.includes('sharp')) {
-        return '↷';
-      } else if (type.includes('slight') || type.includes('bear')) {
-        return '↳';
-      } else {
-        return '→';
-      }
-    } else if (type.includes('uturn') || type.includes('u-turn')) {
-      return '↻';
-    } else if (type.includes('roundabout')) {
-      return '⟲';
-    } else if (type.includes('merge')) {
-      return '↗';
-    } else if (type.includes('exit')) {
-      return '↘';
-    } else {
-      return '↑';
-    }
-  };
 
-  // Helper function to format distance
-  const formatDistance = (distance) => {
-    if (distance < 0.1) {
-      return `${Math.round(distance * 5280)} ft`; // Convert to feet
-    } else {
-      return `${distance.toFixed(1)} mi`;
-    }
-  };
+
+
 
   const displayedResults = useMemo(() => {
     const candidateIds = new Set(candidates.map((c) => c.placeId));
@@ -1875,10 +2074,10 @@ useEffect(() => {
        </div>
      )}
 
-     {showDirections && currentDirections.length > 0 && (
+     {showDirections && (
        <div className="friends-view-container">
-         <button className="friends-view-btn">
-           Friends View
+         <button className="friends-view-btn" onClick={handleProgressView}>
+           Progress View
          </button>
        </div>
      )}
@@ -1888,18 +2087,13 @@ useEffect(() => {
          <div className="directions-header">
            <div className="directions-title">Navigation</div>
            <div className="directions-progress">
-             Step {currentDirectionIndex + 1} of {currentDirections.length}
+             Step {currentDirectionIndex + 1} of 8
            </div>
          </div>
          <div className="current-direction">
            <div className="direction-text">
              <div className="direction-instruction">
                {currentDirections[currentDirectionIndex]?.text || ""}
-             </div>
-             <div className="direction-distance">
-               {currentDirections[currentDirectionIndex]?.distance > 0 ? (
-                 `in ${formatDistance(currentDirections[currentDirectionIndex].distance)}`
-               ) : null}
              </div>
            </div>
          </div>
