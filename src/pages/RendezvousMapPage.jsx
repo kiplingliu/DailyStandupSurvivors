@@ -130,8 +130,19 @@ useEffect(() => {
                 <p><strong>${candidate.name}</strong></p>
                 <p>${candidate.address}</p>
                 <p>Upvotes: ${candidate.upvotes}, Downvotes: ${candidate.downvotes}</p>
+                <p><strong>Average Travel Time:</strong> <span id="candidate-travel-time-${candidate.placeId}">Calculating...</span></p>
               </div>
             `;
+            
+            // Calculate travel time asynchronously for candidates too
+            calculateAverageTravelTime(candidate).then(avgTime => {
+              const timeSpan = document.getElementById(`candidate-travel-time-${candidate.placeId}`);
+              if (timeSpan) {
+                timeSpan.innerHTML = avgTime || "Unable to calculate";
+                timeSpan.style.color = avgTime ? "#28a745" : "#dc3545";
+              }
+            });
+            
             const buttonContainer = document.createElement("div");
             buttonContainer.className = "vote-buttons";
 
@@ -863,6 +874,123 @@ useEffect(() => {
     };
   };
 
+  // Function to calculate average travel time from all user locations to a place
+  const calculateAverageTravelTime = async (place) => {
+    try {
+      // Get all user locations (main + characters)
+      const userLocations = [];
+      
+      // Add main rendezvous location
+      if (rendezvous?.location) {
+        let mainCoords;
+        if (rendezvous.location.includes('Current Location') && rendezvous.location.includes('(')) {
+          const coordMatch = rendezvous.location.match(/\(([^)]+)\)/);
+          if (coordMatch) {
+            const [lat, lng] = coordMatch[1].split(',').map(coord => parseFloat(coord.trim()));
+            mainCoords = { latitude: lat, longitude: lng, name: 'Jayvee' };
+          }
+        } else {
+          const coordinates = await geocodeAddress(rendezvous.location);
+          if (coordinates) {
+            mainCoords = { latitude: coordinates[1], longitude: coordinates[0], name: 'Jayvee' };
+          }
+        }
+        if (mainCoords) userLocations.push(mainCoords);
+      }
+      
+      // Add character locations
+      characterLocations.forEach(char => {
+        userLocations.push({
+          latitude: char.latitude,
+          longitude: char.longitude,
+          name: char.name
+        });
+      });
+
+      if (userLocations.length === 0) return null;
+
+      // Use ArcGIS Route service to calculate travel times
+      const routeUrl = "https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World/solve";
+      
+      const travelTimes = [];
+      
+      for (const userLocation of userLocations) {
+        try {
+          const stops = [
+            `${userLocation.longitude},${userLocation.latitude}`,
+            `${place.location.longitude},${place.location.latitude}`
+          ];
+
+          const params = new URLSearchParams({
+            f: 'json',
+            token: ARCGIS_API_KEY,
+            stops: stops.join(';'),
+            returnDirections: 'false',
+            returnRoutes: 'true',
+            returnStops: 'false',
+            returnBarriers: 'false',
+            returnPolygonBarriers: 'false',
+            returnPolylineBarriers: 'false',
+            outputLines: 'esriNAOutputLineNone',
+            findBestSequence: 'false',
+            preserveFirstStop: 'true',
+            preserveLastStop: 'true',
+            useHierarchy: 'true',
+            restrictionAttributeNames: '',
+            impedanceAttributeName: 'TravelTime',
+            accumulateAttributeNames: '',
+            attributeParameterValues: '',
+            maxAllowableViolationTime: 20,
+            returnFacilities: 'false',
+            returnIncidents: 'false',
+            returnInputs: 'false',
+            returnMessages: 'false',
+            outputGeometryPrecision: '',
+            outputGeometryPrecisionUnits: 'esriUnitsMeters'
+          });
+
+          const response = await fetch(routeUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: params
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.routes && data.routes.features && data.routes.features.length > 0) {
+              const travelTimeMinutes = data.routes.features[0].attributes.Total_TravelTime;
+              travelTimes.push(travelTimeMinutes);
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to calculate travel time from ${userLocation.name}:`, error);
+        }
+      }
+
+      if (travelTimes.length === 0) return null;
+
+      // Calculate average travel time
+      const avgTravelTime = travelTimes.reduce((sum, time) => sum + time, 0) / travelTimes.length;
+      
+      // Format the time nicely
+      if (avgTravelTime < 1) {
+        return `${Math.round(avgTravelTime * 60)} seconds`;
+      } else if (avgTravelTime < 60) {
+        return `${Math.round(avgTravelTime)} minutes`;
+      } else {
+        const hours = Math.floor(avgTravelTime / 60);
+        const minutes = Math.round(avgTravelTime % 60);
+        return `${hours}h ${minutes}m`;
+      }
+
+    } catch (error) {
+      console.error('Error calculating average travel time:', error);
+      return null;
+    }
+  };
+
   const addPlaceMarkersToMap = (places) => {
     if (!placesLayerRef.current) return;
 
@@ -910,6 +1038,20 @@ useEffect(() => {
                 div.appendChild(typeElement);
               }
 
+              // Add travel time information
+              const travelTimeElement = document.createElement("p");
+              travelTimeElement.innerHTML = `<strong>Average Travel Time:</strong> <span id="travel-time-${place.placeId}">Calculating...</span>`;
+              travelTimeElement.style.marginTop = "5px";
+              div.appendChild(travelTimeElement);
+
+              // Calculate travel time asynchronously
+              calculateAverageTravelTime(place).then(avgTime => {
+                const timeSpan = document.getElementById(`travel-time-${place.placeId}`);
+                if (timeSpan) {
+                  timeSpan.innerHTML = avgTime || "Unable to calculate";
+                  timeSpan.style.color = avgTime ? "#28a745" : "#dc3545";
+                }
+              });
 
               const searchResultElement = document.createElement("p");
               searchResultElement.style.marginTop = "10px";
@@ -922,7 +1064,6 @@ useEffect(() => {
               button.innerText = "Select as candidate";
               button.classList.add("esri-button"); // Use ArcGIS styles
               button.style.marginTop = "10px";
-
 
               // Add the click event listener to the button.
               button.addEventListener("click", () => {
