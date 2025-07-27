@@ -1386,7 +1386,23 @@ useEffect(() => {
     }
   };
 
-    // Function to animate user to destination with simple, consistent timing
+  // Helper function to interpolate between two points
+  const interpolatePoints = (point1, point2, steps) => {
+    const interpolatedPoints = [];
+    const [lng1, lat1] = point1;
+    const [lng2, lat2] = point2;
+    
+    for (let i = 0; i <= steps; i++) {
+      const ratio = i / steps;
+      const lng = lng1 + (lng2 - lng1) * ratio;
+      const lat = lat1 + (lat2 - lat1) * ratio;
+      interpolatedPoints.push([lng, lat]);
+    }
+    
+    return interpolatedPoints;
+  };
+
+  // Function to animate user to destination with smooth interpolation
   const animateUserToDestination = async (routeGeometry) => {
     if (!userMarkerRef.current || !routeGeometry || animationInProgress) return;
 
@@ -1395,21 +1411,38 @@ useEffect(() => {
     
     try {
       // Get all the path coordinates from the route
-      const paths = routeGeometry.paths[0];
+      const routePaths = routeGeometry.paths[0];
       const totalAnimationTime = 35000; // 35 seconds total (slower than friends)
-      const stepDuration = totalAnimationTime / (paths.length - 1);
       
-      console.log(`Starting user navigation: ${paths.length} points over ${totalAnimationTime}ms`);
-      console.log(`Step duration: ${stepDuration.toFixed(0)}ms per point`);
+      // Create smooth interpolated points between route points
+      const smoothPoints = [];
+      const interpolationSteps = 10; // Create 10 intermediate points between each route point
       
-      // Animate through each point with consistent timing
-      for (let i = 0; i < paths.length; i++) {
+      for (let i = 0; i < routePaths.length - 1; i++) {
+        const currentPoint = routePaths[i];
+        const nextPoint = routePaths[i + 1];
+        
+        // Get interpolated points between current and next (excluding the last point to avoid duplicates)
+        const interpolated = interpolatePoints(currentPoint, nextPoint, interpolationSteps);
+        smoothPoints.push(...interpolated.slice(0, -1)); // Remove last point to avoid duplicates
+      }
+      
+      // Add the final point
+      smoothPoints.push(routePaths[routePaths.length - 1]);
+      
+      const stepDuration = totalAnimationTime / smoothPoints.length;
+      
+      console.log(`Starting smooth user navigation: ${routePaths.length} route points → ${smoothPoints.length} smooth points over ${totalAnimationTime}ms`);
+      console.log(`Step duration: ${stepDuration.toFixed(0)}ms per point (much smoother!)`);
+      
+      // Animate through each smooth point
+      for (let i = 0; i < smoothPoints.length; i++) {
         if (animationCancelRef.current) {
           console.log('User animation cancelled at step', i);
           break;
         }
         
-        const [longitude, latitude] = paths[i];
+        const [longitude, latitude] = smoothPoints[i];
         
         // Update user marker position
         const newPoint = {
@@ -1420,16 +1453,16 @@ useEffect(() => {
 
         userMarkerRef.current.geometry = newPoint;
 
-        // Center map on user only if progress view is not active
-        if (!progressViewActiveRef.current && mapViewRef.current && i % 2 === 0) {
+        // Center map on user only if progress view is not active (less frequently for performance)
+        if (!progressViewActiveRef.current && mapViewRef.current && i % 20 === 0) {
           requestAnimationFrame(() => {
             if (mapViewRef.current && !progressViewActiveRef.current) {
               mapViewRef.current.goTo({
                 center: [longitude, latitude],
                 zoom: 16
               }, {
-                duration: 150,
-                easing: "out-cubic"
+                duration: 100,
+                easing: "linear"  
               }).catch(() => {
                 // Ignore errors
               });
@@ -1437,8 +1470,8 @@ useEffect(() => {
           });
         }
 
-        // Wait for next step with consistent timing
-        if (i < paths.length - 1) {
+        // Wait for next step with smooth timing
+        if (i < smoothPoints.length - 1) {
           await new Promise(resolve => setTimeout(resolve, stepDuration));
         }
       }
@@ -1869,7 +1902,7 @@ useEffect(() => {
     }
   };
 
-    const animateBarryToDestination = async (barryLocation, routeGeometry, duration = 25000) => {
+  const animateBarryToDestination = async (barryLocation, routeGeometry, duration = 25000) => {
     if (!charactersLayerRef.current || !routeGeometry) return;
 
     // Find Barry's graphic on the map
@@ -1882,11 +1915,29 @@ useEffect(() => {
       return;
     }
 
-    console.log(`Starting Barry's ${duration}ms journey to destination`);
+    console.log(`Starting Barry's ${duration}ms smooth journey to destination`);
 
-    // Get route path points  
-    const paths = routeGeometry.paths[0];
-    const stepDuration = duration / (paths.length - 1);
+    // Get route path points and create smooth interpolation
+    const routePaths = routeGeometry.paths[0];
+    const smoothPoints = [];
+    const interpolationSteps = 8; // Slightly fewer steps for Barry (still smooth but not as many as user)
+    
+    for (let i = 0; i < routePaths.length - 1; i++) {
+      const currentPoint = routePaths[i];
+      const nextPoint = routePaths[i + 1];
+      
+      // Get interpolated points between current and next
+      const interpolated = interpolatePoints(currentPoint, nextPoint, interpolationSteps);
+      smoothPoints.push(...interpolated.slice(0, -1)); // Remove last point to avoid duplicates
+    }
+    
+    // Add the final point
+    smoothPoints.push(routePaths[routePaths.length - 1]);
+    
+    const stepDuration = duration / smoothPoints.length;
+    
+    console.log(`Barry smooth animation: ${routePaths.length} route points → ${smoothPoints.length} smooth points`);
+    console.log(`Barry step duration: ${stepDuration.toFixed(0)}ms per point`);
 
     // Send progress notifications (only if in progress view)
     const progressNotifications = [
@@ -1903,9 +1954,9 @@ useEffect(() => {
       }, progressNotif.time);
     });
 
-    // Animate Barry along the route
-    for (let i = 0; i < paths.length; i++) {
-      const [longitude, latitude] = paths[i];
+    // Animate Barry along the smooth route
+    for (let i = 0; i < smoothPoints.length; i++) {
+      const [longitude, latitude] = smoothPoints[i];
 
       // Update Barry's position
       const newPoint = {
@@ -1918,8 +1969,8 @@ useEffect(() => {
         barryGraphic.geometry = newPoint;
       }
 
-      // Wait for next step
-      if (i < paths.length - 1) {
+      // Wait for next step with smooth timing
+      if (i < smoothPoints.length - 1) {
         await new Promise(resolve => setTimeout(resolve, stepDuration));
       }
     }
