@@ -8,6 +8,7 @@ import MapView from "@arcgis/core/views/MapView";
 import Graphic from "@arcgis/core/Graphic";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import * as locator from "@arcgis/core/rest/locator";
+import ScaleBar from "@arcgis/core/widgets/ScaleBar.js"
 
 const RendezvousMapPage = () => {
   const { rendezvousData } = useParams();
@@ -308,6 +309,12 @@ useEffect(() => {
       };
 
       view.ui.move("zoom", "bottom-right");
+
+      view.ui.add(new ScaleBar({
+        view: view,
+      }), {
+        position: "bottom-left"
+      });
 
       // Create graphics layer for the rendezvous point
       const graphicsLayer = new GraphicsLayer();
